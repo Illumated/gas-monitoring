@@ -9,7 +9,7 @@
   },
   "scripts": {
     "generate:flow": "node scripts/generate-product-flow.mjs",
-    "test": "node tests/validate-flow.mjs && node tests/product-flow.test.mjs",
+    "test": "node tests/validate-flow.mjs && node tests/product-flow.test.mjs && node tests/runtime-render.test.mjs",
     "audit:flow": "node tests/audit-flow.mjs"
   },
   "dependencies": {

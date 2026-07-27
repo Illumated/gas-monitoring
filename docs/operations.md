@@ -40,3 +40,15 @@ docker compose --env-file .env -f docker/compose.yaml restart
 - Обновить `package.json` и `package-lock.json`.
 - Пересобрать image без cache.
 - Выполнить regression tests и только затем развернуть.
+
+## Rollback
+
+1. Создать backup текущих volumes.
+2. Зафиксировать текущий commit и image ID.
+3. Переключить рабочую копию на ранее принятый Git tag/commit.
+4. Выполнить `docker compose config --quiet` и пересобрать image.
+5. Если схема данных не менялась, перезапустить сервис с существующими volumes.
+6. Если изменялась схема или данные повреждены, восстановить backup сначала под отдельным Compose project name.
+7. Проверить health, три канала, историю и reconnect; только затем переключить kiosk.
+
+Удалять рабочие volumes до проверки восстановленного экземпляра запрещено.

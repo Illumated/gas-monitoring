@@ -1,0 +1,19 @@
+[Unit]
+Description=RINIR gas monitoring
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/gas-monitoring
+ExecStartPre=/usr/bin/docker compose --env-file /etc/gas-monitoring/gas-monitoring.env -f docker/compose.yaml -f docker/compose.production.yaml config --quiet
+ExecStart=/usr/bin/docker compose --env-file /etc/gas-monitoring/gas-monitoring.env -f docker/compose.yaml -f docker/compose.production.yaml up -d --remove-orphans
+ExecReload=/usr/bin/docker compose --env-file /etc/gas-monitoring/gas-monitoring.env -f docker/compose.yaml -f docker/compose.production.yaml up -d --remove-orphans
+ExecStop=/usr/bin/docker compose --env-file /etc/gas-monitoring/gas-monitoring.env -f docker/compose.yaml -f docker/compose.production.yaml stop
+TimeoutStartSec=180
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

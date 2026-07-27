@@ -41,11 +41,12 @@ for (const read of reads) {
     assert.equal(read.adr, expectedRegisters.get(read.topic));
     assert.equal(read.quantity, "1");
     assert.equal(read.server, client.id);
+    assert.ok(Number(read.startDelayTime) <= 3, "Modbus startDelayTime is measured in seconds");
 }
 
 const normalize = byId.get("fn-normalize");
 const normalizeFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", normalize.func);
-const nodeMock = { staleTimers: new Map(), send() {} };
+const nodeMock = { staleTimers: new Map(), lastStatus: new Map(), send() {}, error() {} };
 const contextMock = { get() {}, set() {} };
 const envMock = { get(name) { return name === "GAS_STALE_TIMEOUT_MS" ? "20000" : ""; } };
 const timerMock = () => ({ testTimer: true });
@@ -58,6 +59,7 @@ for (const [raw, value, status] of [
     [65, 6.5, "warn"],
     [66, 6.6, "alarm"]
 ]) {
+    nodeMock.lastStatus.clear();
     const result = normalizeFn(
         { topic: "oxygen", payload: { data: [raw] } },
         nodeMock,
@@ -72,6 +74,7 @@ for (const [raw, value, status] of [
 }
 
 for (const raw of [32767, -32768, Number.NaN]) {
+    nodeMock.lastStatus.clear();
     const result = normalizeFn(
         { topic: "air", payload: { data: [raw] } },
         nodeMock,
@@ -84,6 +87,44 @@ for (const raw of [32767, -32768, Number.NaN]) {
     assert.equal(result[0].payload.value, null);
     assert.equal(result[1], null);
 }
+
+nodeMock.lastStatus.set("oxygen", "alarm");
+let hysteresisResult = normalizeFn(
+    { topic: "oxygen", payload: { data: [35] } },
+    nodeMock,
+    contextMock,
+    envMock,
+    timerMock,
+    () => {}
+);
+assert.equal(hysteresisResult[0].payload.status, "alarm", "alarm must not clear at the warning boundary");
+hysteresisResult = normalizeFn(
+    { topic: "oxygen", payload: { data: [37] } },
+    nodeMock,
+    contextMock,
+    envMock,
+    timerMock,
+    () => {}
+);
+assert.equal(hysteresisResult[0].payload.status, "warn", "alarm must clear inside the warning band");
+hysteresisResult = normalizeFn(
+    { topic: "oxygen", payload: { data: [40] } },
+    nodeMock,
+    contextMock,
+    envMock,
+    timerMock,
+    () => {}
+);
+assert.equal(hysteresisResult[0].payload.status, "warn", "warning must not clear at the normal boundary");
+hysteresisResult = normalizeFn(
+    { topic: "oxygen", payload: { data: [42] } },
+    nodeMock,
+    contextMock,
+    envMock,
+    timerMock,
+    () => {}
+);
+assert.equal(hysteresisResult[0].payload.status, "ok", "warning must clear inside the normal band");
 
 const stateNode = byId.get("fn-state");
 const stateFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", stateNode.func);
@@ -100,7 +141,28 @@ const staleResult = stateFn({}, {}, stateContext, envMock, timerMock, () => {});
 assert.equal(staleResult.payload.gases[0].value, null, "old persisted value must not remain visible");
 assert.equal(staleResult.payload.gases[0].status, "nodata", "old persisted value must become nodata");
 
-assert.equal(nodes.filter((node) => node.type === "http request").length, 2);
+assert.equal(nodes.filter((node) => node.type === "http request").length, 3);
+assert.ok(byId.has("fn-max-request"), "MAX notification request builder must exist");
+assert.ok(byId.has("http-max-send"), "MAX HTTP sender must exist");
+assert.equal(byId.has("fn-simulator"), false, "product flow must not bypass Modbus with an internal simulator");
+const maxNode = byId.get("fn-max-request");
+const maxFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", maxNode.func);
+const maxEvent = { payload: { kind: "gas-state-change", name: "Кислород", value: 3.5, from: "ok", to: "warn" } };
+assert.equal(maxFn(maxEvent, { error() {} }, contextMock, envMock), null, "MAX must be disabled by default");
+const maxEnv = {
+    get(name) {
+        return {
+            MAX_NOTIFICATIONS_ENABLED: "true",
+            MAX_BOT_TOKEN: "test-token",
+            MAX_CHAT_ID: "123",
+            MAX_API_URL: "https://platform-api2.max.ru"
+        }[name] ?? "";
+    }
+};
+const maxResult = maxFn(structuredClone(maxEvent), { error() {} }, contextMock, maxEnv);
+assert.equal(maxResult.url, "https://platform-api2.max.ru/messages?chat_id=123");
+assert.equal(maxResult.headers.Authorization, "test-token");
+assert.match(maxResult.payload.text, /НОРМА → ВНИМАНИЕ/);
 assert.equal(byId.get("cfg-ui-base").path, "/dashboard");
 assert.equal(byId.get("cfg-page-monitor").path, "/monitoring");
 assert.equal(byId.get("cfg-page-history").path, "/history");

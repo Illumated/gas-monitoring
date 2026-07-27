@@ -1,0 +1,12 @@
+services:
+  node-red:
+    environment:
+      MODBUS_HOST: modbus-simulator
+      MODBUS_PORT: 502
+      MODBUS_UNIT_ID: 65
+      MODBUS_POLL_INTERVAL_MS: ${MODBUS_POLL_INTERVAL_MS:-1000}
+    depends_on:
+      modbus-simulator:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy

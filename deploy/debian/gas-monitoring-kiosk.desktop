@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=RINIR Gas Monitoring
+Exec=chromium --kiosk --noerrdialogs --disable-session-crashed-bubble --disable-infobars http://127.0.0.1:1880/dashboard/monitoring
+Terminal=false
+X-GNOME-Autostart-enabled=true

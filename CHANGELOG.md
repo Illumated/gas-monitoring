@@ -12,7 +12,12 @@
 - Реализован продуктовый Modbus TCP flow для O₂, AIR и N₂O с Input Registers, валидацией, масштабированием и stale-контролем.
 - Реализованы полноэкранный HMI и интерактивная история на FlowFuse Dashboard.
 - Запись и чтение InfluxDB переведены на v2 HTTP API без credentials в flow.
-- Добавлен отключённый по умолчанию стендовый генератор данных.
+- Добавлен отдельный Modbus TCP simulator и FAT-профиль без обхода Modbus nodes.
+- Добавлены конфигурируемые пороги, гистерезис и динамическая шкала HMI.
+- Подготовлены уведомления MAX по переходам состояния без хранения токена в Git.
+- Добавлена обязательная процедура настройки WB-MAI6 4–20 мА и шкалы `0…160`.
+- Добавлены Debian 13 deployment, systemd, kiosk, production override и Linux backup/restore.
 - Удалены legacy `node-red-dashboard` и `node-red-contrib-influxdb`; repository audit не содержит известных уязвимостей.
 - Подтверждена совместимость с Node-RED 5.0.1 и Node.js 24 на закреплённом image digest.
 - Исправлена высота FlowFuse `ui-template`: monitoring и history используют viewport без внутренней прокрутки на 1280×720, 1366×768 и 1920×1080.
+- Исправлены скрытые внутренней симуляцией дефекты: runtime-подстановка Modbus settings и единица `startDelayTime` в секундах.

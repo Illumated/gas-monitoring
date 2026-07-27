@@ -31,6 +31,12 @@
 .\scripts\backup.ps1
 ```
 
+На Debian 13:
+
+```bash
+./scripts/backup.sh
+```
+
 По умолчанию архивы создаются в `backups/<UTC timestamp>/`. Каталог исключён из Git.
 
 Секреты не включаются. Для отдельной защищённой копии `.env`:
@@ -50,3 +56,9 @@
 ```
 
 Скрипт проверяет SHA-256 каждого архива. Если target volumes уже существуют, операция прекращается. `-ReplaceExisting` допускается только после отдельного подтверждения удаления конкретных target volumes.
+
+На Debian восстановление также выполняется только в отсутствующие volumes:
+
+```bash
+./scripts/restore.sh ./backups/<timestamp> gas-monitoring-restore-test
+```

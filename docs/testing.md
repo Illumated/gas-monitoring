@@ -31,3 +31,41 @@ docker compose --env-file .env -f docker/compose.yaml config
 ```
 
 Физические тесты не заменяются симуляцией.
+# Тестирование
+
+## Автоматические проверки
+
+```bash
+npm test
+docker compose --env-file .env -f docker/compose.yaml config --quiet
+docker compose --profile fat --env-file .env -f docker/compose.yaml -f docker/compose.fat.yaml config --quiet
+```
+
+## Software FAT
+
+FAT-профиль использует отдельный Modbus TCP server с Unit ID `65` и Input Registers `5380`, `9476`, `13572`.
+
+| Сценарий | Raw | Ожидание |
+|---|---|---|
+| `normal` | 50 / 52 / 48 | 5.0 / 5.2 / 4.8 bar, `ok` |
+| `zero` | 0 / 0 / 0 | 0.0 bar, `alarm`, запись в историю |
+| `warning` | 35 / 65 / 39 | 3.5 / 6.5 / 3.9 bar, `warn` |
+| `alarm` | 20 / 80 / 70 | 2.0 / 8.0 / 7.0 bar, `alarm` |
+| `nodata` | 32767 | `nodata`, значение не пишется в InfluxDB |
+
+Проверка reconnect:
+
+1. Остановить только `modbus-simulator`.
+2. Дождаться `GAS_STALE_TIMEOUT_MS`; экран должен показать `НЕТ ДАННЫХ`.
+3. Запустить simulator.
+4. Не выполнять Deploy и не перезапускать Node-RED.
+5. Убедиться, что свежие точки всех трёх газов снова появились в InfluxDB.
+
+## Результат 2026-07-27
+
+- все три контейнера healthy;
+- все сценарии прошли через `modbus-read`, а не через внутреннюю подстановку;
+- `0.0 bar` сохранён как аварийное измерение;
+- `32767` дал `nodata`;
+- после остановки simulator на 25 секунд и запуска свежие точки трёх каналов появились без Deploy;
+- аппаратные проверки 4/12/20 мА, обрывы петель и длительный тест остаются обязательными на объекте.

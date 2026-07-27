@@ -40,12 +40,29 @@ services:
       NODE_RED_CREDENTIAL_SECRET: ${NODE_RED_CREDENTIAL_SECRET:?set NODE_RED_CREDENTIAL_SECRET in .env}
       NODE_RED_ADMIN_USER: ${NODE_RED_ADMIN_USER:-admin}
       NODE_RED_ADMIN_PASSWORD_HASH: ${NODE_RED_ADMIN_PASSWORD_HASH:-}
-      SIMULATION_MODE: ${SIMULATION_MODE:-false}
       MODBUS_HOST: ${MODBUS_HOST:-192.168.50.10}
       MODBUS_PORT: ${MODBUS_PORT:-502}
       MODBUS_UNIT_ID: ${MODBUS_UNIT_ID:-65}
       MODBUS_POLL_INTERVAL_MS: ${MODBUS_POLL_INTERVAL_MS:-5000}
       GAS_STALE_TIMEOUT_MS: ${GAS_STALE_TIMEOUT_MS:-20000}
+      GAS_HYSTERESIS_BAR: ${GAS_HYSTERESIS_BAR:-0.1}
+      GAS_DISPLAY_MAX_BAR: ${GAS_DISPLAY_MAX_BAR:-8}
+      OXYGEN_WARN_LOW_BAR: ${OXYGEN_WARN_LOW_BAR:-3.5}
+      OXYGEN_OK_LOW_BAR: ${OXYGEN_OK_LOW_BAR:-4}
+      OXYGEN_OK_HIGH_BAR: ${OXYGEN_OK_HIGH_BAR:-6}
+      OXYGEN_WARN_HIGH_BAR: ${OXYGEN_WARN_HIGH_BAR:-6.5}
+      AIR_WARN_LOW_BAR: ${AIR_WARN_LOW_BAR:-3.5}
+      AIR_OK_LOW_BAR: ${AIR_OK_LOW_BAR:-4}
+      AIR_OK_HIGH_BAR: ${AIR_OK_HIGH_BAR:-6}
+      AIR_WARN_HIGH_BAR: ${AIR_WARN_HIGH_BAR:-6.5}
+      N2O_WARN_LOW_BAR: ${N2O_WARN_LOW_BAR:-3.5}
+      N2O_OK_LOW_BAR: ${N2O_OK_LOW_BAR:-4}
+      N2O_OK_HIGH_BAR: ${N2O_OK_HIGH_BAR:-6}
+      N2O_WARN_HIGH_BAR: ${N2O_WARN_HIGH_BAR:-6.5}
+      MAX_NOTIFICATIONS_ENABLED: ${MAX_NOTIFICATIONS_ENABLED:-false}
+      MAX_API_URL: ${MAX_API_URL:-https://platform-api2.max.ru}
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
+      MAX_CHAT_ID: ${MAX_CHAT_ID:-}
       INFLUXDB_URL: http://influxdb:8086
       INFLUXDB_ORG: ${INFLUXDB_ORG:?set INFLUXDB_ORG in .env}
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:?set INFLUXDB_BUCKET in .env}
@@ -70,6 +87,38 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+  modbus-simulator:
+    image: gas-monitoring-node-red:0.1.0
+    profiles:
+      - fat
+    restart: unless-stopped
+    entrypoint:
+      - node
+      - /opt/gas-monitoring/modbus-simulator.cjs
+    environment:
+      MODBUS_UNIT_ID: 65
+      NODE_PATH: /usr/src/node-red/node_modules
+    ports:
+      - "127.0.0.1:${MODBUS_SIMULATOR_PORT:-1502}:502"
+      - "127.0.0.1:${MODBUS_SIMULATOR_CONTROL_PORT:-18080}:8080"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          const r=require('http').get('http://127.0.0.1:8080/health',
+          x=>process.exit(x.statusCode===200?0:1));
+          r.on('error',()=>process.exit(1));
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
     security_opt:
       - no-new-privileges:true
     networks:

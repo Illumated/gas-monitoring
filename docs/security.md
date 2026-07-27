@@ -36,6 +36,7 @@
 - Legacy `node-red-dashboard` и `node-red-contrib-influxdb` удалены из product image.
 - Repository lockfile audit после удаления legacy-зависимостей: `0` известных уязвимостей.
 - Токен InfluxDB читается из environment только при формировании HTTP-запроса и не хранится в flow credentials.
+- Токен MAX читается из environment, передаётся в `Authorization` и не сохраняется в flow или Git.
 
 ## Открытые требования
 
@@ -46,4 +47,5 @@
 - способ TLS termination;
 - журналирование действий;
 - обновление и rollback;
-- допустимость Docker Desktop по корпоративной лицензии.
+- правила firewall на целевом Debian 13;
+- desktop environment и политика kiosk-автовхода.

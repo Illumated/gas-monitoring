@@ -11,6 +11,8 @@ const ids = {
   historyGroup: "cfg-group-history",
   normalize: "fn-normalize",
   state: "fn-state",
+  maxRequest: "fn-max-request",
+  maxHttp: "http-max-send",
   influxWrite: "fn-influx-write",
   influxWriteHttp: "http-influx-write",
   historyUi: "ui-history",
@@ -40,13 +42,11 @@ const monitoringTemplate = String.raw`<template>
         </div>
         <div class="gm-value"><strong>{{ display(gas) }}</strong><span>бар</span></div>
         <div class="gm-track">
-          <span class="zone alarm-low"></span><span class="zone warn-low"></span>
-          <span class="zone ok"></span><span class="zone warn-high"></span>
-          <span class="zone alarm-high"></span>
-          <i v-if="gas.value !== null" :style="{left: marker(gas.value) + '%'}"></i>
+          <span v-for="zone in zones(gas)" :key="zone.name" class="zone" :class="zone.name" :style="{width: zone.width + '%'}"></span>
+          <i v-if="gas.value !== null" :style="{left: marker(gas) + '%'}"></i>
         </div>
-        <div class="gm-scale"><span>0</span><span>3,5</span><span>4,0</span><span>6,0</span><span>6,5</span><span>8</span></div>
-        <footer><span>Норма: 4,0–6,0 бар</span><span>{{ updated(gas) }}</span></footer>
+        <div class="gm-scale"><span v-for="point in scale(gas)" :key="point">{{ fmt(point) }}</span></div>
+        <footer><span>Норма: {{ fmt(gas.limits?.okLow) }}–{{ fmt(gas.limits?.okHigh) }} бар</span><span>{{ updated(gas) }}</span></footer>
       </article>
     </section>
     <footer class="gm-footer">
@@ -84,7 +84,14 @@ export default {
   methods: {
     label(status) { return ({ok:"НОРМА",warn:"ВНИМАНИЕ",alarm:"АВАРИЯ",nodata:"НЕТ ДАННЫХ"})[status] || "НЕТ ДАННЫХ" },
     display(gas) { return Number.isFinite(gas.value) ? gas.value.toFixed(1).replace(".", ",") : "—" },
-    marker(value) { return Math.max(0, Math.min(100, Number(value) / 8 * 100)) },
+    fmt(value) { return Number.isFinite(Number(value)) ? Number(value).toFixed(1).replace(".", ",") : "—" },
+    marker(gas) { return Math.max(0, Math.min(100, Number(gas.value) / Number(gas.limits?.displayMax || 8) * 100)) },
+    scale(gas) { const l=gas.limits||{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8}; return [0,l.warnLow,l.okLow,l.okHigh,l.warnHigh,l.displayMax] },
+    zones(gas) {
+      const l=gas.limits||{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8}; const max=l.displayMax||8
+      const values=[l.warnLow,l.okLow-l.warnLow,l.okHigh-l.okLow,l.warnHigh-l.okHigh,max-l.warnHigh]
+      return ["alarm-low","warn-low","ok","warn-high","alarm-high"].map((name,i)=>({name,width:Math.max(0,values[i])/max*100}))
+    },
     updated(gas) { return gas.updatedAt ? "Обновлено " + new Date(gas.updatedAt).toLocaleTimeString("ru-RU") : "Ожидание данных" }
   }
 }
@@ -100,7 +107,7 @@ export default {
 .gm-header time{font-size:24px;font-variant-numeric:tabular-nums}.gm-head-status{display:flex;align-items:center;gap:12px;padding:12px 18px;border:1px solid #31516a;border-radius:14px;background:#102638}.gm-head-status small,.gm-head-status strong{display:block}.gm-head-status small{color:#94afc2;font-size:11px;text-transform:uppercase}.gm-head-status strong{font-size:18px}.gm-dot{width:14px;height:14px;border-radius:50%;background:#7c8b96;box-shadow:0 0 16px currentColor}
 .gm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;min-height:0}.gm-card{position:relative;display:flex;min-height:0;flex-direction:column;padding:22px;border:1px solid #29465c;border-top:5px solid #71808b;border-radius:18px;background:linear-gradient(145deg,#102738,#0b1d2b);box-shadow:0 16px 38px #0005}.gm-card.is-ok{border-top-color:#25c77c}.gm-card.is-warn{border-top-color:#f6b73c}.gm-card.is-alarm{border-top-color:#ff5364}.gm-card-head{display:flex;justify-content:space-between;gap:12px}.gm-card-head p{margin:0;color:#64b9ea;font-size:15px;font-weight:800}.gm-card h2{min-height:54px;margin:5px 0 0;font-size:23px}.gm-badge{height:max-content;padding:7px 10px;border-radius:8px;background:#263b4a;color:#cbd8e2;font-size:11px;font-weight:900;letter-spacing:.08em}.is-ok .gm-badge{background:#143e30;color:#5de3a4}.is-warn .gm-badge{background:#4a3613;color:#ffd36b}.is-alarm .gm-badge{background:#4c2028;color:#ff8995}
 .gm-value{display:flex;flex:1;min-height:90px;align-items:center;justify-content:center;gap:10px;margin:14px 0}.gm-value strong{font-size:clamp(52px,6vw,86px);line-height:.9;font-variant-numeric:tabular-nums}.gm-value span{align-self:center;color:#94afc2;font-size:20px}
-.gm-track{position:relative;display:flex;height:14px;overflow:visible;border-radius:8px}.gm-track .zone{height:100%}.alarm-low,.alarm-high{width:21.875%;background:#c83c4b}.warn-low,.warn-high{width:6.25%;background:#d99b27}.gm-track .ok{width:25%;background:#1b9e62}.gm-track i{position:absolute;top:-7px;width:4px;height:28px;transform:translateX(-2px);border-radius:3px;background:#fff;box-shadow:0 0 10px #fff}.gm-scale{display:flex;justify-content:space-between;margin-top:8px;color:#819bad;font-size:11px}.gm-card footer{display:flex;justify-content:space-between;gap:12px;margin-top:28px;color:#8fa9bb;font-size:12px}
+.gm-track{position:relative;display:flex;height:14px;overflow:visible;border-radius:8px}.gm-track .zone{height:100%}.alarm-low,.alarm-high{background:#c83c4b}.warn-low,.warn-high{background:#d99b27}.gm-track .ok{background:#1b9e62}.gm-track i{position:absolute;top:-7px;width:4px;height:28px;transform:translateX(-2px);border-radius:3px;background:#fff;box-shadow:0 0 10px #fff}.gm-scale{display:flex;justify-content:space-between;margin-top:8px;color:#819bad;font-size:11px}.gm-card footer{display:flex;justify-content:space-between;gap:12px;margin-top:28px;color:#8fa9bb;font-size:12px}
 .gm-footer{display:flex;align-items:center;gap:20px;margin-top:8px;padding:12px 4px 0;color:#a5bac9;font-size:12px}.gm-footer span{display:flex;align-items:center;gap:6px}.legend{width:9px;height:9px;border-radius:50%}.legend.ok{background:#25c77c}.legend.warn{background:#f6b73c}.legend.alarm{background:#ff5364}.legend.nodata{background:#71808b}.gm-footer a{margin-left:auto;color:#72c7f5;font-weight:700;text-decoration:none}
 @media(max-width:900px){.gm-shell{height:auto;min-height:calc(100dvh - 24px);overflow:visible}.gm-header{grid-template-columns:1fr auto}.gm-header time{display:none}.gm-grid{grid-template-columns:1fr}.gm-card h2{min-height:0}.gm-footer{flex-wrap:wrap}.gm-footer a{width:100%;margin:0}}@media(max-width:560px){.gm-shell{padding:14px}.gm-header{grid-template-columns:1fr}.gm-head-status{width:max-content}.gm-card footer{flex-direction:column}.gm-footer{gap:10px}}
 </style>`;
@@ -158,32 +165,67 @@ export default {
 </style>`;
 
 const normalizeCode = `const channels = {
-  oxygen: { code: "O₂", name: "Кислород" },
-  air: { code: "AIR", name: "Медицинский воздух" },
-  n2o: { code: "N₂O", name: "Закись азота" }
+  oxygen: { code: "O₂", name: "Кислород", prefix: "OXYGEN" },
+  air: { code: "AIR", name: "Медицинский воздух", prefix: "AIR" },
+  n2o: { code: "N₂O", name: "Закись азота", prefix: "N2O" }
 };
 const gas = channels[msg.topic];
 if (!gas) return null;
+const number = (name, fallback) => {
+  const rawValue = env.get(name);
+  if (rawValue === undefined || rawValue === null || String(rawValue).trim() === "") return fallback;
+  const value = Number(rawValue);
+  return Number.isFinite(value) ? value : fallback;
+};
+const limits = {
+  warnLow:number(gas.prefix + "_WARN_LOW_BAR",3.5),
+  okLow:number(gas.prefix + "_OK_LOW_BAR",4),
+  okHigh:number(gas.prefix + "_OK_HIGH_BAR",6),
+  warnHigh:number(gas.prefix + "_WARN_HIGH_BAR",6.5),
+  displayMax:number("GAS_DISPLAY_MAX_BAR",8)
+};
+if (!(limits.warnLow <= limits.okLow && limits.okLow < limits.okHigh && limits.okHigh <= limits.warnHigh && limits.warnHigh < limits.displayMax)) {
+  node.error("Invalid threshold order for " + msg.topic);
+  return null;
+}
+const transition = payload => {
+  node.lastStatus ||= new Map();
+  const from = node.lastStatus.get(payload.key);
+  node.lastStatus.set(payload.key, payload.status);
+  if (from === payload.status || (from === undefined && payload.status === "ok")) return null;
+  return {payload:{kind:"gas-state-change",key:payload.key,name:payload.name,value:payload.value,from:from || "startup",to:payload.status,reason:payload.reason,updatedAt:payload.updatedAt}};
+};
+const staleMs = Math.max(5000, number("GAS_STALE_TIMEOUT_MS",20000));
+node.staleTimers ||= new Map();
+const previousTimer = node.staleTimers.get(msg.topic);
+if (previousTimer) clearTimeout(previousTimer);
+const staleTimer = setTimeout(() => {
+  const payload={key:msg.topic,code:gas.code,name:gas.name,value:null,raw:null,status:"nodata",reason:"stale",limits,updatedAt:Date.now()};
+  node.send([{payload},null,transition(payload)]);
+}, staleMs);
+node.staleTimers.set(msg.topic, staleTimer);
 const source = Array.isArray(msg.payload?.data) ? msg.payload.data : (Array.isArray(msg.payload) ? msg.payload : []);
 const raw = Number(source[0]);
-const staleMs = Math.max(5000, Number(env.get("GAS_STALE_TIMEOUT_MS")) || 20000);
-node.staleTimers ||= new Map();
-const previous = node.staleTimers.get(msg.topic);
-if (previous) clearTimeout(previous);
-const staleTimer = setTimeout(() => node.send([{payload:{key:msg.topic,...gas,value:null,raw:null,status:"nodata",reason:"stale",updatedAt:Date.now()}},null]), staleMs);
-node.staleTimers.set(msg.topic, staleTimer);
 if (!Number.isFinite(raw) || raw === 32767 || raw === -32768) {
-  return [{payload:{key:msg.topic,...gas,value:null,raw:null,status:"nodata",reason:"invalid",updatedAt:Date.now()}},null];
+  const payload={key:msg.topic,code:gas.code,name:gas.name,value:null,raw:null,status:"nodata",reason:"invalid",limits,updatedAt:Date.now()};
+  return [{payload},null,transition(payload)];
 }
 const value = Math.round(raw) / 10;
-const status = value >= 4 && value <= 6 ? "ok" : (value >= 3.5 && value <= 6.5 ? "warn" : "alarm");
-const payload = {key:msg.topic,...gas,value,raw,status,reason:null,updatedAt:Date.now()};
-return [{payload},{payload}];`;
+let status = value >= limits.okLow && value <= limits.okHigh ? "ok" : (value >= limits.warnLow && value <= limits.warnHigh ? "warn" : "alarm");
+const previousStatus = node.lastStatus?.get(msg.topic);
+const hysteresis = Math.max(0, number("GAS_HYSTERESIS_BAR",0.1));
+if (previousStatus === "alarm" && status !== "alarm") {
+  status = value >= limits.warnLow + hysteresis && value <= limits.warnHigh - hysteresis ? "warn" : "alarm";
+} else if (previousStatus === "warn" && status === "ok") {
+  status = value >= limits.okLow + hysteresis && value <= limits.okHigh - hysteresis ? "ok" : "warn";
+}
+const payload = {key:msg.topic,code:gas.code,name:gas.name,value,raw,status,reason:null,limits,updatedAt:Date.now()};
+return [{payload},{payload},transition(payload)];`;
 
 const stateCode = `const initial = {
-  oxygen:{key:"oxygen",code:"O₂",name:"Кислород",value:null,raw:null,status:"nodata",updatedAt:null},
-  air:{key:"air",code:"AIR",name:"Медицинский воздух",value:null,raw:null,status:"nodata",updatedAt:null},
-  n2o:{key:"n2o",code:"N₂O",name:"Закись азота",value:null,raw:null,status:"nodata",updatedAt:null}
+  oxygen:{key:"oxygen",code:"O₂",name:"Кислород",value:null,raw:null,status:"nodata",limits:{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8},updatedAt:null},
+  air:{key:"air",code:"AIR",name:"Медицинский воздух",value:null,raw:null,status:"nodata",limits:{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8},updatedAt:null},
+  n2o:{key:"n2o",code:"N₂O",name:"Закись азота",value:null,raw:null,status:"nodata",limits:{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8},updatedAt:null}
 };
 const state = context.get("gasState") || initial;
 if (msg.payload?.key && state[msg.payload.key]) state[msg.payload.key] = msg.payload;
@@ -252,15 +294,30 @@ const valueIndex = headers.indexOf("_value");
 const points = lines.slice(1).map(line => {
   const cols = line.split(",");
   const value = Number(cols[valueIndex]);
-  const status = value >= 4 && value <= 6 ? "ok" : (value >= 3.5 && value <= 6.5 ? "warn" : "alarm");
+  const prefix = ({oxygen:"OXYGEN",air:"AIR",n2o:"N2O"})[gas];
+  const number = (name,fallback) => { const raw=env.get(name); if(raw===undefined||raw===null||String(raw).trim()==="")return fallback; const v=Number(raw); return Number.isFinite(v)?v:fallback; };
+  const okLow=number(prefix+"_OK_LOW_BAR",4),okHigh=number(prefix+"_OK_HIGH_BAR",6),warnLow=number(prefix+"_WARN_LOW_BAR",3.5),warnHigh=number(prefix+"_WARN_HIGH_BAR",6.5);
+  const status = value >= okLow && value <= okHigh ? "ok" : (value >= warnLow && value <= warnHigh ? "warn" : "alarm");
   return {time:cols[timeIndex],value,status};
 }).filter(point => point.time && Number.isFinite(point.value));
 return {payload:{kind:"history",gas,points,error:""}};`;
 
-const simulatorCode = `if (String(env.get("SIMULATION_MODE")).toLowerCase() !== "true") return null;
-const phase = (Date.now() / 60000) % (Math.PI * 2);
-const values = {oxygen:50 + Math.sin(phase) * 4,air:52 + Math.sin(phase + 2) * 3,n2o:48 + Math.sin(phase + 4) * 5};
-return Object.entries(values).map(([topic, raw]) => ({topic,payload:{data:[Math.round(raw)]}}));`;
+const maxRequestCode = `if (String(env.get("MAX_NOTIFICATIONS_ENABLED")).toLowerCase() !== "true") return null;
+const event = msg.payload;
+if (event?.kind !== "gas-state-change") return null;
+const token = env.get("MAX_BOT_TOKEN");
+const chatId = env.get("MAX_CHAT_ID");
+if (!token || !chatId) {
+  node.error("MAX notifications enabled, but MAX_BOT_TOKEN or MAX_CHAT_ID is empty");
+  return null;
+}
+const labels={ok:"НОРМА",warn:"ВНИМАНИЕ",alarm:"АВАРИЯ",nodata:"НЕТ ДАННЫХ",startup:"ЗАПУСК"};
+const value=Number.isFinite(event.value) ? event.value.toFixed(1)+" бар" : "значение отсутствует";
+msg.method="POST";
+msg.url=(env.get("MAX_API_URL")||"https://platform-api2.max.ru")+"/messages?chat_id="+encodeURIComponent(chatId);
+msg.headers={"Authorization":token,"Content-Type":"application/json"};
+msg.payload={text:"RINIR · "+event.name+"\\n"+labels[event.from]+" → "+labels[event.to]+"\\n"+value,notify:true};
+return msg;`;
 
 const flow = [
   {id:tab,type:"tab",label:"RINIR Gas Monitoring",disabled:false,info:"Product flow: WB-MAI6 via USR-DR134, InfluxDB v2 and FlowFuse Dashboard."},
@@ -273,20 +330,20 @@ const flow = [
   {id:ids.historyGroup,type:"ui-group",name:"История",page:ids.historyPage,width:"12",height:"1",order:1,showTitle:false,className:"gh-group",visible:"true",disabled:"false",groupType:"default"},
   {id:"ui-monitor",type:"ui-template",z:tab,group:ids.monitorGroup,name:"HMI: monitoring",order:1,width:12,height:10,format:monitoringTemplate,templateScope:"local",storeOutMessages:true,fwdInMessages:false,resendOnRefresh:true,className:"gm-widget",x:1040,y:180,wires:[[]]},
   {id:ids.historyUi,type:"ui-template",z:tab,group:ids.historyGroup,name:"HMI: history",order:1,width:12,height:10,format:historyTemplate,templateScope:"local",storeOutMessages:true,fwdInMessages:false,resendOnRefresh:true,className:"gh-widget",x:220,y:700,wires:[[ids.historyQuery]]},
-  {id:"read-oxygen",type:"modbus-read",z:tab,name:"O₂ · IR 5380",topic:"oxygen",showStatusActivities:true,logIOActivities:false,showErrors:true,showWarnings:true,unitid:"65",dataType:"InputRegister",adr:"5380",quantity:"1",rate:"${MODBUS_POLL_INTERVAL_MS}",rateUnit:"ms",delayOnStart:true,enableDeformedMessages:false,startDelayTime:"1000",server:ids.modbus,useIOFile:false,ioFile:"",useIOForPayload:false,emptyMsgOnFail:true,x:180,y:120,wires:[[ids.normalize],[]]},
-  {id:"read-air",type:"modbus-read",z:tab,name:"AIR · IR 9476",topic:"air",showStatusActivities:true,logIOActivities:false,showErrors:true,showWarnings:true,unitid:"65",dataType:"InputRegister",adr:"9476",quantity:"1",rate:"${MODBUS_POLL_INTERVAL_MS}",rateUnit:"ms",delayOnStart:true,enableDeformedMessages:false,startDelayTime:"1500",server:ids.modbus,useIOFile:false,ioFile:"",useIOForPayload:false,emptyMsgOnFail:true,x:180,y:180,wires:[[ids.normalize],[]]},
-  {id:"read-n2o",type:"modbus-read",z:tab,name:"N₂O · IR 13572",topic:"n2o",showStatusActivities:true,logIOActivities:false,showErrors:true,showWarnings:true,unitid:"65",dataType:"InputRegister",adr:"13572",quantity:"1",rate:"${MODBUS_POLL_INTERVAL_MS}",rateUnit:"ms",delayOnStart:true,enableDeformedMessages:false,startDelayTime:"2000",server:ids.modbus,useIOFile:false,ioFile:"",useIOForPayload:false,emptyMsgOnFail:true,x:180,y:240,wires:[[ids.normalize],[]]},
-  {id:ids.normalize,type:"function",z:tab,name:"Validate, scale and classify",func:normalizeCode,outputs:2,timeout:0,noerr:0,initialize:"node.staleTimers = new Map();",finalize:"for (const timer of node.staleTimers?.values() || []) clearTimeout(timer);",libs:[],x:470,y:180,wires:[[ids.state],[ids.influxWrite]]},
+  {id:"read-oxygen",type:"modbus-read",z:tab,name:"O₂ · IR 5380",topic:"oxygen",showStatusActivities:true,logIOActivities:false,showErrors:true,showWarnings:true,unitid:"65",dataType:"InputRegister",adr:"5380",quantity:"1",rate:"${MODBUS_POLL_INTERVAL_MS}",rateUnit:"ms",delayOnStart:true,enableDeformedMessages:false,startDelayTime:"1",server:ids.modbus,useIOFile:false,ioFile:"",useIOForPayload:false,emptyMsgOnFail:true,x:180,y:120,wires:[[ids.normalize],[]]},
+  {id:"read-air",type:"modbus-read",z:tab,name:"AIR · IR 9476",topic:"air",showStatusActivities:true,logIOActivities:false,showErrors:true,showWarnings:true,unitid:"65",dataType:"InputRegister",adr:"9476",quantity:"1",rate:"${MODBUS_POLL_INTERVAL_MS}",rateUnit:"ms",delayOnStart:true,enableDeformedMessages:false,startDelayTime:"2",server:ids.modbus,useIOFile:false,ioFile:"",useIOForPayload:false,emptyMsgOnFail:true,x:180,y:180,wires:[[ids.normalize],[]]},
+  {id:"read-n2o",type:"modbus-read",z:tab,name:"N₂O · IR 13572",topic:"n2o",showStatusActivities:true,logIOActivities:false,showErrors:true,showWarnings:true,unitid:"65",dataType:"InputRegister",adr:"13572",quantity:"1",rate:"${MODBUS_POLL_INTERVAL_MS}",rateUnit:"ms",delayOnStart:true,enableDeformedMessages:false,startDelayTime:"3",server:ids.modbus,useIOFile:false,ioFile:"",useIOForPayload:false,emptyMsgOnFail:true,x:180,y:240,wires:[[ids.normalize],[]]},
+  {id:ids.normalize,type:"function",z:tab,name:"Validate, scale and classify",func:normalizeCode,outputs:3,timeout:0,noerr:0,initialize:"node.staleTimers = new Map(); node.lastStatus = new Map();",finalize:"for (const timer of node.staleTimers?.values() || []) clearTimeout(timer);",libs:[],x:470,y:180,wires:[[ids.state],[ids.influxWrite],[ids.maxRequest]]},
   {id:"clock",type:"inject",z:tab,name:"UI clock",props:[{p:"payload"}],repeat:"1",crontab:"",once:true,onceDelay:0.2,topic:"",payload:"",payloadType:"date",x:470,y:100,wires:[[ids.state]]},
   {id:ids.state,type:"function",z:tab,name:"Build HMI state",func:stateCode,outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:760,y:180,wires:[["ui-monitor"]]},
   {id:ids.influxWrite,type:"function",z:tab,name:"Build InfluxDB v2 write",func:influxWriteCode,outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:770,y:280,wires:[[ids.influxWriteHttp]]},
   {id:ids.influxWriteHttp,type:"http request",z:tab,name:"InfluxDB write",method:"use",ret:"txt",paytoqs:"ignore",url:"",tls:"",persist:false,proxy:"",insecureHTTPParser:false,authType:"",senderr:true,headers:[],x:1040,y:280,wires:[[]]},
-  {id:"sim-tick",type:"inject",z:tab,name:"Simulator tick (test only)",props:[{p:"payload"}],repeat:"5",crontab:"",once:true,onceDelay:1,topic:"",payload:"",payloadType:"date",x:190,y:360,wires:[["fn-simulator"]]},
-  {id:"fn-simulator",type:"function",z:tab,name:"Development simulator",func:simulatorCode,outputs:3,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:470,y:360,wires:[[ids.normalize],[ids.normalize],[ids.normalize]]},
+  {id:ids.maxRequest,type:"function",z:tab,name:"Build MAX state notification",func:maxRequestCode,outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:780,y:360,wires:[[ids.maxHttp]]},
+  {id:ids.maxHttp,type:"http request",z:tab,name:"MAX send message",method:"use",ret:"obj",paytoqs:"ignore",url:"",tls:"",persist:false,proxy:"",insecureHTTPParser:false,authType:"",senderr:true,headers:[],x:1040,y:360,wires:[[]]},
   {id:ids.historyQuery,type:"function",z:tab,name:"Build safe Flux query",func:historyQueryCode,outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:490,y:700,wires:[[ids.historyHttp]]},
   {id:ids.historyHttp,type:"http request",z:tab,name:"InfluxDB query",method:"use",ret:"txt",paytoqs:"body",url:"",tls:"",persist:false,proxy:"",insecureHTTPParser:false,authType:"",senderr:true,headers:[],x:730,y:700,wires:[[ids.historyParse]]},
   {id:ids.historyParse,type:"function",z:tab,name:"Parse history response",func:historyParseCode,outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:960,y:700,wires:[[ids.historyUi]]},
-  {id:"catch-runtime",type:"catch",z:tab,name:"Runtime errors",scope:["read-oxygen","read-air","read-n2o",ids.influxWriteHttp,ids.historyHttp],uncaught:false,x:190,y:520,wires:[["fn-error-log"]]},
+  {id:"catch-runtime",type:"catch",z:tab,name:"Runtime errors",scope:["read-oxygen","read-air","read-n2o",ids.influxWriteHttp,ids.historyHttp,ids.maxHttp],uncaught:false,x:190,y:520,wires:[["fn-error-log"]]},
   {id:"fn-error-log",type:"function",z:tab,name:"Sanitize and log error",func:'node.error((msg.error?.message || "Runtime error").replace(/Token\\s+[^\\s]+/gi, "Token [redacted]"));\nreturn null;',outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:470,y:520,wires:[[]]}
 ];
 

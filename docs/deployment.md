@@ -2,7 +2,7 @@
 
 ## Требования
 
-- Windows 10 Pro build 19045 или поддерживаемая Linux-система;
+- Windows 10 Pro build 19045 для разработки либо Debian 13 для production;
 - Docker Desktop с WSL2 backend либо Docker Engine;
 - Docker Compose v2;
 - свободные локальные порты 1880 и 8086;
@@ -51,21 +51,30 @@ http://127.0.0.1:1880/dashboard/history
 
 ## Стендовый прогон без оборудования
 
-В отдельном PowerShell-сеансе:
+FAT-профиль запускает отдельный Modbus TCP simulator. Node-RED при этом продолжает использовать штатные `modbus-read` nodes:
 
 ```powershell
-$env:SIMULATION_MODE = "true"
-docker compose --env-file .env -f docker/compose.yaml up -d --force-recreate node-red
+docker compose --profile fat --env-file .env `
+  -f docker/compose.yaml `
+  -f docker/compose.fat.yaml `
+  up -d --build
 ```
 
-После проверки вернуть штатный режим:
+Сценарии:
 
 ```powershell
-Remove-Item Env:SIMULATION_MODE
-docker compose --env-file .env -f docker/compose.yaml up -d --force-recreate node-red
+Invoke-WebRequest -Method Post http://127.0.0.1:18080/scenario/zero
+Invoke-WebRequest -Method Post http://127.0.0.1:18080/scenario/warning
+Invoke-WebRequest -Method Post http://127.0.0.1:18080/scenario/alarm
+Invoke-WebRequest -Method Post http://127.0.0.1:18080/scenario/nodata
+Invoke-WebRequest -Method Post http://127.0.0.1:18080/scenario/normal
 ```
 
 Симуляция не заменяет проверку USR-DR134, WB-MAI6 и токовых петель.
+
+## Production
+
+Debian 13, systemd, kiosk и production override описаны в [debian-13.md](debian-13.md). Первичная настройка оборудования выполняется по [wb-mai6-commissioning.md](wb-mai6-commissioning.md) до запуска Node-RED.
 
 ## Остановка
 

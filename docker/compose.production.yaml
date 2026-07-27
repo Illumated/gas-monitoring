@@ -1,0 +1,17 @@
+services:
+  influxdb:
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  node-red:
+    environment:
+      NODE_RED_ADMIN_PASSWORD_HASH: ${NODE_RED_ADMIN_PASSWORD_HASH:?set bcrypt hash in production env}
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    pids_limit: 256

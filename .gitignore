@@ -21,6 +21,7 @@ flows_cred.json
 data/
 volumes/
 backups/
+commissioning-evidence/
 *.backup
 
 # Logs and temporary files

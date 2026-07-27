@@ -21,14 +21,14 @@
 - [x] Scaling подтверждён программным contract test.
 - [x] Invalid values дают `НЕТ ДАННЫХ`.
 - [x] Stale timeout работает, включая context после restart.
-- [ ] Reconnect не требует ручного Deploy.
+- [x] Reconnect FAT simulator не требует ручного Deploy.
 
 ## HMI
 
 - [x] Четыре статуса заданы текстом независимо от цвета.
 - [x] Общий статус имеет фиксированный приоритет.
 - [x] 1280×720, 1366×768 и 1920×1080 без document/widget overflow.
-- [ ] `0.0 bar` не похоже на отсутствие данных.
+- [x] `0.0 bar` отображается числом, отсутствие данных — знаком `—` и текстом.
 
 ## Hardware
 
@@ -40,7 +40,7 @@
 ## Operations
 
 - [x] Backup/restore проверен.
-- [ ] Документирован rollback.
+- [x] Документирован rollback.
 - [ ] Утверждены пороги.
-- [ ] Выполнены security requirements.
+- [ ] Выполнены security requirements на целевом Debian 13.
 - [ ] Подписан протокол приёмки.
