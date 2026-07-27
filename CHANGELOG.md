@@ -15,3 +15,4 @@
 - Добавлен отключённый по умолчанию стендовый генератор данных.
 - Удалены legacy `node-red-dashboard` и `node-red-contrib-influxdb`; repository audit не содержит известных уязвимостей.
 - Подтверждена совместимость с Node-RED 5.0.1 и Node.js 24 на закреплённом image digest.
+- Исправлена высота FlowFuse `ui-template`: monitoring и history используют viewport без внутренней прокрутки на 1280×720, 1366×768 и 1920×1080.

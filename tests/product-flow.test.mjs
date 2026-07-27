@@ -104,5 +104,8 @@ assert.equal(nodes.filter((node) => node.type === "http request").length, 2);
 assert.equal(byId.get("cfg-ui-base").path, "/dashboard");
 assert.equal(byId.get("cfg-page-monitor").path, "/monitoring");
 assert.equal(byId.get("cfg-page-history").path, "/history");
+assert.match(byId.get("ui-monitor").format, /box-sizing:border-box/, "desktop HMI must include padding in its viewport height");
+assert.match(byId.get("ui-monitor").format, /grid-template-rows:auto minmax\(0,1fr\) auto/, "desktop HMI must distribute free height between header, cards and footer");
+assert.match(byId.get("ui-monitor").format, /\.nrdb-ui-group\.gm-group \.gm-widget/, "FlowFuse widget wrapper must be sized with the viewport");
 
 console.log("Product flow contract passed: Modbus TCP, scaling, states, HMI and InfluxDB topology");
