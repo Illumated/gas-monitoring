@@ -8,16 +8,12 @@ for (const node of nodes) {
     counts.set(node.type, (counts.get(node.type) ?? 0) + 1);
 }
 
-const modbusReads = nodes
-    .filter((node) => node.type === "modbus-read")
-    .map(({ name, topic, unitid, dataType, adr, quantity, rate, rateUnit }) => ({
+const modbusSequencers = nodes
+    .filter((node) => node.type === "modbus-flex-sequencer")
+    .map(({ name, server, sequences }) => ({
         name,
-        topic,
-        unitid,
-        dataType,
-        address: adr,
-        quantity,
-        rate: `${rate} ${rateUnit}`
+        server,
+        sequences
     }));
 
 const orphanUiBase = nodes
@@ -32,6 +28,6 @@ const orphanUiBase = nodes
 console.log(JSON.stringify({
     objects: nodes.length,
     types: Object.fromEntries([...counts].sort(([a], [b]) => a.localeCompare(b))),
-    modbusReads,
+    modbusSequencers,
     orphanUiBase
 }, null, 2));

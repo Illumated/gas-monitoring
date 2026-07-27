@@ -18,7 +18,9 @@ const ids = {
   historyUi: "ui-history",
   historyQuery: "fn-history-query",
   historyHttp: "http-history-query",
-  historyParse: "fn-history-parse"
+  historyParse: "fn-history-parse",
+  pollCycle: "poll-cycle",
+  pollSequencer: "poll-sequencer"
 };
 
 const monitoringTemplate = String.raw`<template>
@@ -169,6 +171,7 @@ const normalizeCode = `const channels = {
   air: { code: "AIR", name: "Медицинский воздух", prefix: "AIR" },
   n2o: { code: "N₂O", name: "Закись азота", prefix: "N2O" }
 };
+msg.topic = msg.modbusRequest?.name || msg.topic;
 const gas = channels[msg.topic];
 if (!gas) return null;
 const number = (name, fallback) => {
@@ -195,7 +198,8 @@ const transition = payload => {
   if (from === payload.status || (from === undefined && payload.status === "ok")) return null;
   return {payload:{kind:"gas-state-change",key:payload.key,name:payload.name,value:payload.value,from:from || "startup",to:payload.status,reason:payload.reason,updatedAt:payload.updatedAt}};
 };
-const staleMs = Math.max(5000, number("GAS_STALE_TIMEOUT_MS",20000));
+const pollMs = Math.max(500, number("MODBUS_POLL_INTERVAL_MS",1000));
+const staleMs = Math.max(pollMs * 3, number("GAS_STALE_TIMEOUT_MS",4000));
 node.staleTimers ||= new Map();
 const previousTimer = node.staleTimers.get(msg.topic);
 if (previousTimer) clearTimeout(previousTimer);
@@ -229,7 +233,8 @@ const stateCode = `const initial = {
 };
 const state = context.get("gasState") || initial;
 if (msg.payload?.key && state[msg.payload.key]) state[msg.payload.key] = msg.payload;
-const staleMs = Math.max(5000, Number(env.get("GAS_STALE_TIMEOUT_MS")) || 20000);
+const pollMs = Math.max(500, Number(env.get("MODBUS_POLL_INTERVAL_MS")) || 1000);
+const staleMs = Math.max(pollMs * 3, Number(env.get("GAS_STALE_TIMEOUT_MS")) || 4000);
 for (const key of Object.keys(state)) {
   if (state[key].updatedAt && Date.now() - state[key].updatedAt > staleMs) {
     state[key] = {...state[key],value:null,status:"nodata",reason:"stale"};
@@ -321,7 +326,7 @@ return msg;`;
 
 const flow = [
   {id:tab,type:"tab",label:"RINIR Gas Monitoring",disabled:false,info:"Product flow: WB-MAI6 via USR-DR134, InfluxDB v2 and FlowFuse Dashboard."},
-  {id:ids.modbus,type:"modbus-client",name:"USR-DR134 / WB-MAI6",clienttype:"tcp",bufferCommands:true,stateLogEnabled:false,queueLogEnabled:false,failureLogEnabled:true,tcpHost:"${MODBUS_HOST}",tcpPort:"${MODBUS_PORT}",tcpType:"DEFAULT",serialPort:"/dev/ttyS0",serialType:"RTU-BUFFERD",serialBaudrate:"9600",serialDatabits:"8",serialStopbits:"1",serialParity:"none",serialConnectionDelay:"100",serialAsciiResponseStartDelimiter:"",unit_id:65,commandDelay:"",clientTimeout:"3000",reconnectOnTimeout:true,reconnectTimeout:2000,parallelUnitIdsAllowed:false,showErrors:true,showWarnings:true,showLogs:false},
+  {id:ids.modbus,type:"modbus-client",name:"USR-DR134 / WB-MAI6",clienttype:"tcp",bufferCommands:true,stateLogEnabled:false,queueLogEnabled:false,failureLogEnabled:true,tcpHost:"${MODBUS_HOST}",tcpPort:"${MODBUS_PORT}",tcpType:"DEFAULT",serialPort:"/dev/ttyS0",serialType:"RTU-BUFFERD",serialBaudrate:"9600",serialDatabits:"8",serialStopbits:"1",serialParity:"none",serialConnectionDelay:"100",serialAsciiResponseStartDelimiter:"",unit_id:65,commandDelay:"${MODBUS_COMMAND_DELAY_MS}",clientTimeout:"3000",reconnectOnTimeout:true,reconnectTimeout:2000,parallelUnitIdsAllowed:false,showErrors:true,showWarnings:true,showLogs:false},
   {id:ids.ui,type:"ui-base",name:"RINIR Gas Monitoring",path:"/dashboard",appIcon:"",includeClientData:true,acceptsClientConfig:["ui-notification","ui-control"],showPathInSidebar:false,headerContent:"none",navigationStyle:"temporary",titleBarStyle:"hidden",showReconnectNotification:true,notificationDisplayTime:5,showDisconnectNotification:true,allowInstall:false},
   {id:ids.theme,type:"ui-theme",name:"RINIR Dark",colors:{surface:"#102738",primary:"#159ee0",bgPage:"#071521",groupBg:"#071521",groupOutline:"#071521"},sizes:{density:"compact",pagePadding:"0px",groupGap:"0px",groupBorderRadius:"0px",widgetGap:"0px"}},
   {id:ids.monitorPage,type:"ui-page",name:"Мониторинг",ui:ids.ui,path:"/monitoring",icon:"monitor_heart",layout:"grid",theme:ids.theme,breakpoints:[{name:"Default",px:"0",cols:"3"},{name:"Tablet",px:"576",cols:"6"},{name:"Desktop",px:"1024",cols:"12"}],order:1,className:"gm-page",visible:true,disabled:false},
@@ -330,9 +335,8 @@ const flow = [
   {id:ids.historyGroup,type:"ui-group",name:"История",page:ids.historyPage,width:"12",height:"1",order:1,showTitle:false,className:"gh-group",visible:"true",disabled:"false",groupType:"default"},
   {id:"ui-monitor",type:"ui-template",z:tab,group:ids.monitorGroup,name:"HMI: monitoring",order:1,width:12,height:10,format:monitoringTemplate,templateScope:"local",storeOutMessages:true,fwdInMessages:false,resendOnRefresh:true,className:"gm-widget",x:1040,y:180,wires:[[]]},
   {id:ids.historyUi,type:"ui-template",z:tab,group:ids.historyGroup,name:"HMI: history",order:1,width:12,height:10,format:historyTemplate,templateScope:"local",storeOutMessages:true,fwdInMessages:false,resendOnRefresh:true,className:"gh-widget",x:220,y:700,wires:[[ids.historyQuery]]},
-  {id:"read-oxygen",type:"modbus-read",z:tab,name:"O₂ · IR 5380",topic:"oxygen",showStatusActivities:true,logIOActivities:false,showErrors:true,showWarnings:true,unitid:"65",dataType:"InputRegister",adr:"5380",quantity:"1",rate:"${MODBUS_POLL_INTERVAL_MS}",rateUnit:"ms",delayOnStart:true,enableDeformedMessages:false,startDelayTime:"1",server:ids.modbus,useIOFile:false,ioFile:"",useIOForPayload:false,emptyMsgOnFail:true,x:180,y:120,wires:[[ids.normalize],[]]},
-  {id:"read-air",type:"modbus-read",z:tab,name:"AIR · IR 9476",topic:"air",showStatusActivities:true,logIOActivities:false,showErrors:true,showWarnings:true,unitid:"65",dataType:"InputRegister",adr:"9476",quantity:"1",rate:"${MODBUS_POLL_INTERVAL_MS}",rateUnit:"ms",delayOnStart:true,enableDeformedMessages:false,startDelayTime:"2",server:ids.modbus,useIOFile:false,ioFile:"",useIOForPayload:false,emptyMsgOnFail:true,x:180,y:180,wires:[[ids.normalize],[]]},
-  {id:"read-n2o",type:"modbus-read",z:tab,name:"N₂O · IR 13572",topic:"n2o",showStatusActivities:true,logIOActivities:false,showErrors:true,showWarnings:true,unitid:"65",dataType:"InputRegister",adr:"13572",quantity:"1",rate:"${MODBUS_POLL_INTERVAL_MS}",rateUnit:"ms",delayOnStart:true,enableDeformedMessages:false,startDelayTime:"3",server:ids.modbus,useIOFile:false,ioFile:"",useIOForPayload:false,emptyMsgOnFail:true,x:180,y:240,wires:[[ids.normalize],[]]},
+  {id:ids.pollCycle,type:"inject",z:tab,name:"Gas polling cycle",props:[{p:"payload"}],repeat:"1",crontab:"",once:true,onceDelay:1,topic:"",payload:"",payloadType:"date",x:170,y:180,wires:[[ids.pollSequencer]]},
+  {id:ids.pollSequencer,type:"modbus-flex-sequencer",z:tab,name:"O₂ → AIR → N₂O",sequences:[{name:"oxygen",unitid:"65",fc:"FC4",address:"5380",quantity:"1"},{name:"air",unitid:"65",fc:"FC4",address:"9476",quantity:"1"},{name:"n2o",unitid:"65",fc:"FC4",address:"13572",quantity:"1"}],server:ids.modbus,showStatusActivities:true,showErrors:true,showWarnings:true,logIOActivities:false,useIOFile:false,ioFile:"",useIOForPayload:false,emptyMsgOnFail:true,keepMsgProperties:true,delayOnStart:false,startDelayTime:"",x:430,y:180,wires:[[ids.normalize],[]]},
   {id:ids.normalize,type:"function",z:tab,name:"Validate, scale and classify",func:normalizeCode,outputs:3,timeout:0,noerr:0,initialize:"node.staleTimers = new Map(); node.lastStatus = new Map();",finalize:"for (const timer of node.staleTimers?.values() || []) clearTimeout(timer);",libs:[],x:470,y:180,wires:[[ids.state],[ids.influxWrite],[ids.maxRequest]]},
   {id:"clock",type:"inject",z:tab,name:"UI clock",props:[{p:"payload"}],repeat:"1",crontab:"",once:true,onceDelay:0.2,topic:"",payload:"",payloadType:"date",x:470,y:100,wires:[[ids.state]]},
   {id:ids.state,type:"function",z:tab,name:"Build HMI state",func:stateCode,outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:760,y:180,wires:[["ui-monitor"]]},
@@ -343,7 +347,7 @@ const flow = [
   {id:ids.historyQuery,type:"function",z:tab,name:"Build safe Flux query",func:historyQueryCode,outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:490,y:700,wires:[[ids.historyHttp]]},
   {id:ids.historyHttp,type:"http request",z:tab,name:"InfluxDB query",method:"use",ret:"txt",paytoqs:"body",url:"",tls:"",persist:false,proxy:"",insecureHTTPParser:false,authType:"",senderr:true,headers:[],x:730,y:700,wires:[[ids.historyParse]]},
   {id:ids.historyParse,type:"function",z:tab,name:"Parse history response",func:historyParseCode,outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:960,y:700,wires:[[ids.historyUi]]},
-  {id:"catch-runtime",type:"catch",z:tab,name:"Runtime errors",scope:["read-oxygen","read-air","read-n2o",ids.influxWriteHttp,ids.historyHttp,ids.maxHttp],uncaught:false,x:190,y:520,wires:[["fn-error-log"]]},
+  {id:"catch-runtime",type:"catch",z:tab,name:"Runtime errors",scope:[ids.pollSequencer,ids.influxWriteHttp,ids.historyHttp,ids.maxHttp],uncaught:false,x:190,y:520,wires:[["fn-error-log"]]},
   {id:"fn-error-log",type:"function",z:tab,name:"Sanitize and log error",func:'node.error((msg.error?.message || "Runtime error").replace(/Token\\s+[^\\s]+/gi, "Token [redacted]"));\nreturn null;',outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:470,y:520,wires:[[]]}
 ];
 

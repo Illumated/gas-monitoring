@@ -51,7 +51,7 @@ http://127.0.0.1:1880/dashboard/history
 
 ## Стендовый прогон без оборудования
 
-FAT-профиль запускает отдельный Modbus TCP simulator. Node-RED при этом продолжает использовать штатные `modbus-read` nodes:
+FAT-профиль запускает отдельный Modbus TCP simulator. Node-RED при этом продолжает использовать штатный последовательный `modbus-flex-sequencer`, без внутренней подстановки значений:
 
 ```powershell
 docker compose --profile fat --env-file .env `

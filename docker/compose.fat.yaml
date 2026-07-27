@@ -5,6 +5,8 @@ services:
       MODBUS_PORT: 502
       MODBUS_UNIT_ID: 65
       MODBUS_POLL_INTERVAL_MS: ${MODBUS_POLL_INTERVAL_MS:-1000}
+      MODBUS_COMMAND_DELAY_MS: ${MODBUS_COMMAND_DELAY_MS:-300}
+      GAS_STALE_TIMEOUT_MS: ${GAS_STALE_TIMEOUT_MS:-4000}
     depends_on:
       modbus-simulator:
         condition: service_healthy

@@ -27,28 +27,40 @@ assert.equal(client.serialBaudrate, "9600");
 assert.equal(client.serialDatabits, "8");
 assert.equal(client.serialStopbits, "1");
 assert.equal(client.serialParity, "none");
+assert.equal(client.commandDelay, "${MODBUS_COMMAND_DELAY_MS}");
 
 const expectedRegisters = new Map([
-    ["oxygen", "5380"],
-    ["air", "9476"],
-    ["n2o", "13572"]
+    ["oxygen", 5380],
+    ["air", 9476],
+    ["n2o", 13572]
 ]);
-const reads = nodes.filter((node) => node.type === "modbus-read");
-assert.equal(reads.length, expectedRegisters.size);
-for (const read of reads) {
-    assert.equal(read.dataType, "InputRegister");
-    assert.equal(read.unitid, "65");
-    assert.equal(read.adr, expectedRegisters.get(read.topic));
-    assert.equal(read.quantity, "1");
-    assert.equal(read.server, client.id);
-    assert.ok(Number(read.startDelayTime) <= 3, "Modbus startDelayTime is measured in seconds");
+assert.equal(nodes.filter((node) => node.type === "modbus-read").length, 0);
+const pollCycle = byId.get("poll-cycle");
+const sequencer = byId.get("poll-sequencer");
+assert.equal(pollCycle.type, "inject");
+assert.equal(pollCycle.repeat, "1");
+assert.equal(sequencer.type, "modbus-flex-sequencer");
+assert.equal(sequencer.server, client.id);
+assert.deepEqual(sequencer.sequences.map((item) => item.name), [...expectedRegisters.keys()]);
+for (const sequence of sequencer.sequences) {
+    assert.equal(sequence.fc, "FC4");
+    assert.equal(sequence.unitid, "65");
+    assert.equal(Number(sequence.address), expectedRegisters.get(sequence.name));
+    assert.equal(sequence.quantity, "1");
 }
 
 const normalize = byId.get("fn-normalize");
 const normalizeFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", normalize.func);
 const nodeMock = { staleTimers: new Map(), lastStatus: new Map(), send() {}, error() {} };
 const contextMock = { get() {}, set() {} };
-const envMock = { get(name) { return name === "GAS_STALE_TIMEOUT_MS" ? "20000" : ""; } };
+const envMock = {
+    get(name) {
+        return {
+            MODBUS_POLL_INTERVAL_MS: "1000",
+            GAS_STALE_TIMEOUT_MS: "4000"
+        }[name] ?? "";
+    }
+};
 const timerMock = () => ({ testTimer: true });
 
 for (const [raw, value, status] of [
@@ -140,6 +152,18 @@ const stateContext = {
 const staleResult = stateFn({}, {}, stateContext, envMock, timerMock, () => {});
 assert.equal(staleResult.payload.gases[0].value, null, "old persisted value must not remain visible");
 assert.equal(staleResult.payload.gases[0].status, "nodata", "old persisted value must become nodata");
+
+nodeMock.lastStatus.clear();
+const sequencerResult = normalizeFn(
+    { topic: "poll-sequencer", modbusRequest: { name: "air" }, payload: [52] },
+    nodeMock,
+    contextMock,
+    envMock,
+    timerMock,
+    () => {}
+);
+assert.equal(sequencerResult[0].payload.key, "air");
+assert.equal(sequencerResult[0].payload.value, 5.2);
 
 assert.equal(nodes.filter((node) => node.type === "http request").length, 3);
 assert.ok(byId.has("fn-max-request"), "MAX notification request builder must exist");

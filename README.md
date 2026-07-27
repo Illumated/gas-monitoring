@@ -47,13 +47,14 @@ Node-RED → Dashboard
 InfluxDB
 ```
 
-Рабочий профиль: `192.168.50.10:502`, Unit ID `65`, `9600 8N1` на RTU-стороне, Input Register `5380` / `9476` / `13572`, масштаб `raw / 10`, poll `5 s`, stale timeout `20 s`.
+Рабочий профиль: `192.168.50.10:502`, Unit ID `65`, `9600 8N1` на RTU-стороне, Input Register `5380` / `9476` / `13572`, масштаб `raw / 10`, последовательный poll `1 s`, stale timeout `4 s`.
 
 Пороги каждого газа и общий гистерезис задаются в `.env`; текущие значения `4,0–6,0 bar` и `3,5–6,5 bar` являются стендовыми, а не клинически утверждёнными. Аппаратная и клиническая приёмка выполняются по `tests/acceptance-checklist.md`.
 
 Обязательные эксплуатационные документы:
 
 - `docs/wb-mai6-commissioning.md` — настройка входов 4–20 мА и шкалы;
+- `docs/configuration.md` — назначение и ограничения всех переменных `.env`;
 - `docs/debian-13.md` — production-развёртывание и kiosk;
 - `docs/max-notifications.md` — подключение MAX;
 - `docs/backup-restore.md` — backup и restore.

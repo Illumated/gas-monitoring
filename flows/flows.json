@@ -27,7 +27,7 @@
     "serialConnectionDelay": "100",
     "serialAsciiResponseStartDelimiter": "",
     "unit_id": 65,
-    "commandDelay": "",
+    "commandDelay": "${MODBUS_COMMAND_DELAY_MS}",
     "clientTimeout": "3000",
     "reconnectOnTimeout": true,
     "reconnectTimeout": 2000,
@@ -210,97 +210,72 @@
     ]
   },
   {
-    "id": "read-oxygen",
-    "type": "modbus-read",
+    "id": "poll-cycle",
+    "type": "inject",
     "z": "flow-product",
-    "name": "O₂ · IR 5380",
-    "topic": "oxygen",
-    "showStatusActivities": true,
-    "logIOActivities": false,
-    "showErrors": true,
-    "showWarnings": true,
-    "unitid": "65",
-    "dataType": "InputRegister",
-    "adr": "5380",
-    "quantity": "1",
-    "rate": "${MODBUS_POLL_INTERVAL_MS}",
-    "rateUnit": "ms",
-    "delayOnStart": true,
-    "enableDeformedMessages": false,
-    "startDelayTime": "1",
-    "server": "cfg-modbus-tcp",
-    "useIOFile": false,
-    "ioFile": "",
-    "useIOForPayload": false,
-    "emptyMsgOnFail": true,
-    "x": 180,
-    "y": 120,
-    "wires": [
-      [
-        "fn-normalize"
-      ],
-      []
-    ]
-  },
-  {
-    "id": "read-air",
-    "type": "modbus-read",
-    "z": "flow-product",
-    "name": "AIR · IR 9476",
-    "topic": "air",
-    "showStatusActivities": true,
-    "logIOActivities": false,
-    "showErrors": true,
-    "showWarnings": true,
-    "unitid": "65",
-    "dataType": "InputRegister",
-    "adr": "9476",
-    "quantity": "1",
-    "rate": "${MODBUS_POLL_INTERVAL_MS}",
-    "rateUnit": "ms",
-    "delayOnStart": true,
-    "enableDeformedMessages": false,
-    "startDelayTime": "2",
-    "server": "cfg-modbus-tcp",
-    "useIOFile": false,
-    "ioFile": "",
-    "useIOForPayload": false,
-    "emptyMsgOnFail": true,
-    "x": 180,
+    "name": "Gas polling cycle",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "1",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 1,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 170,
     "y": 180,
     "wires": [
       [
-        "fn-normalize"
-      ],
-      []
+        "poll-sequencer"
+      ]
     ]
   },
   {
-    "id": "read-n2o",
-    "type": "modbus-read",
+    "id": "poll-sequencer",
+    "type": "modbus-flex-sequencer",
     "z": "flow-product",
-    "name": "N₂O · IR 13572",
-    "topic": "n2o",
+    "name": "O₂ → AIR → N₂O",
+    "sequences": [
+      {
+        "name": "oxygen",
+        "unitid": "65",
+        "fc": "FC4",
+        "address": "5380",
+        "quantity": "1"
+      },
+      {
+        "name": "air",
+        "unitid": "65",
+        "fc": "FC4",
+        "address": "9476",
+        "quantity": "1"
+      },
+      {
+        "name": "n2o",
+        "unitid": "65",
+        "fc": "FC4",
+        "address": "13572",
+        "quantity": "1"
+      }
+    ],
+    "server": "cfg-modbus-tcp",
     "showStatusActivities": true,
-    "logIOActivities": false,
     "showErrors": true,
     "showWarnings": true,
-    "unitid": "65",
-    "dataType": "InputRegister",
-    "adr": "13572",
-    "quantity": "1",
-    "rate": "${MODBUS_POLL_INTERVAL_MS}",
-    "rateUnit": "ms",
-    "delayOnStart": true,
-    "enableDeformedMessages": false,
-    "startDelayTime": "3",
-    "server": "cfg-modbus-tcp",
+    "logIOActivities": false,
     "useIOFile": false,
     "ioFile": "",
     "useIOForPayload": false,
     "emptyMsgOnFail": true,
-    "x": 180,
-    "y": 240,
+    "keepMsgProperties": true,
+    "delayOnStart": false,
+    "startDelayTime": "",
+    "x": 430,
+    "y": 180,
     "wires": [
       [
         "fn-normalize"
@@ -313,7 +288,7 @@
     "type": "function",
     "z": "flow-product",
     "name": "Validate, scale and classify",
-    "func": "const channels = {\n  oxygen: { code: \"O₂\", name: \"Кислород\", prefix: \"OXYGEN\" },\n  air: { code: \"AIR\", name: \"Медицинский воздух\", prefix: \"AIR\" },\n  n2o: { code: \"N₂O\", name: \"Закись азота\", prefix: \"N2O\" }\n};\nconst gas = channels[msg.topic];\nif (!gas) return null;\nconst number = (name, fallback) => {\n  const rawValue = env.get(name);\n  if (rawValue === undefined || rawValue === null || String(rawValue).trim() === \"\") return fallback;\n  const value = Number(rawValue);\n  return Number.isFinite(value) ? value : fallback;\n};\nconst limits = {\n  warnLow:number(gas.prefix + \"_WARN_LOW_BAR\",3.5),\n  okLow:number(gas.prefix + \"_OK_LOW_BAR\",4),\n  okHigh:number(gas.prefix + \"_OK_HIGH_BAR\",6),\n  warnHigh:number(gas.prefix + \"_WARN_HIGH_BAR\",6.5),\n  displayMax:number(\"GAS_DISPLAY_MAX_BAR\",8)\n};\nif (!(limits.warnLow <= limits.okLow && limits.okLow < limits.okHigh && limits.okHigh <= limits.warnHigh && limits.warnHigh < limits.displayMax)) {\n  node.error(\"Invalid threshold order for \" + msg.topic);\n  return null;\n}\nconst transition = payload => {\n  node.lastStatus ||= new Map();\n  const from = node.lastStatus.get(payload.key);\n  node.lastStatus.set(payload.key, payload.status);\n  if (from === payload.status || (from === undefined && payload.status === \"ok\")) return null;\n  return {payload:{kind:\"gas-state-change\",key:payload.key,name:payload.name,value:payload.value,from:from || \"startup\",to:payload.status,reason:payload.reason,updatedAt:payload.updatedAt}};\n};\nconst staleMs = Math.max(5000, number(\"GAS_STALE_TIMEOUT_MS\",20000));\nnode.staleTimers ||= new Map();\nconst previousTimer = node.staleTimers.get(msg.topic);\nif (previousTimer) clearTimeout(previousTimer);\nconst staleTimer = setTimeout(() => {\n  const payload={key:msg.topic,code:gas.code,name:gas.name,value:null,raw:null,status:\"nodata\",reason:\"stale\",limits,updatedAt:Date.now()};\n  node.send([{payload},null,transition(payload)]);\n}, staleMs);\nnode.staleTimers.set(msg.topic, staleTimer);\nconst source = Array.isArray(msg.payload?.data) ? msg.payload.data : (Array.isArray(msg.payload) ? msg.payload : []);\nconst raw = Number(source[0]);\nif (!Number.isFinite(raw) || raw === 32767 || raw === -32768) {\n  const payload={key:msg.topic,code:gas.code,name:gas.name,value:null,raw:null,status:\"nodata\",reason:\"invalid\",limits,updatedAt:Date.now()};\n  return [{payload},null,transition(payload)];\n}\nconst value = Math.round(raw) / 10;\nlet status = value >= limits.okLow && value <= limits.okHigh ? \"ok\" : (value >= limits.warnLow && value <= limits.warnHigh ? \"warn\" : \"alarm\");\nconst previousStatus = node.lastStatus?.get(msg.topic);\nconst hysteresis = Math.max(0, number(\"GAS_HYSTERESIS_BAR\",0.1));\nif (previousStatus === \"alarm\" && status !== \"alarm\") {\n  status = value >= limits.warnLow + hysteresis && value <= limits.warnHigh - hysteresis ? \"warn\" : \"alarm\";\n} else if (previousStatus === \"warn\" && status === \"ok\") {\n  status = value >= limits.okLow + hysteresis && value <= limits.okHigh - hysteresis ? \"ok\" : \"warn\";\n}\nconst payload = {key:msg.topic,code:gas.code,name:gas.name,value,raw,status,reason:null,limits,updatedAt:Date.now()};\nreturn [{payload},{payload},transition(payload)];",
+    "func": "const channels = {\n  oxygen: { code: \"O₂\", name: \"Кислород\", prefix: \"OXYGEN\" },\n  air: { code: \"AIR\", name: \"Медицинский воздух\", prefix: \"AIR\" },\n  n2o: { code: \"N₂O\", name: \"Закись азота\", prefix: \"N2O\" }\n};\nmsg.topic = msg.modbusRequest?.name || msg.topic;\nconst gas = channels[msg.topic];\nif (!gas) return null;\nconst number = (name, fallback) => {\n  const rawValue = env.get(name);\n  if (rawValue === undefined || rawValue === null || String(rawValue).trim() === \"\") return fallback;\n  const value = Number(rawValue);\n  return Number.isFinite(value) ? value : fallback;\n};\nconst limits = {\n  warnLow:number(gas.prefix + \"_WARN_LOW_BAR\",3.5),\n  okLow:number(gas.prefix + \"_OK_LOW_BAR\",4),\n  okHigh:number(gas.prefix + \"_OK_HIGH_BAR\",6),\n  warnHigh:number(gas.prefix + \"_WARN_HIGH_BAR\",6.5),\n  displayMax:number(\"GAS_DISPLAY_MAX_BAR\",8)\n};\nif (!(limits.warnLow <= limits.okLow && limits.okLow < limits.okHigh && limits.okHigh <= limits.warnHigh && limits.warnHigh < limits.displayMax)) {\n  node.error(\"Invalid threshold order for \" + msg.topic);\n  return null;\n}\nconst transition = payload => {\n  node.lastStatus ||= new Map();\n  const from = node.lastStatus.get(payload.key);\n  node.lastStatus.set(payload.key, payload.status);\n  if (from === payload.status || (from === undefined && payload.status === \"ok\")) return null;\n  return {payload:{kind:\"gas-state-change\",key:payload.key,name:payload.name,value:payload.value,from:from || \"startup\",to:payload.status,reason:payload.reason,updatedAt:payload.updatedAt}};\n};\nconst pollMs = Math.max(500, number(\"MODBUS_POLL_INTERVAL_MS\",1000));\nconst staleMs = Math.max(pollMs * 3, number(\"GAS_STALE_TIMEOUT_MS\",4000));\nnode.staleTimers ||= new Map();\nconst previousTimer = node.staleTimers.get(msg.topic);\nif (previousTimer) clearTimeout(previousTimer);\nconst staleTimer = setTimeout(() => {\n  const payload={key:msg.topic,code:gas.code,name:gas.name,value:null,raw:null,status:\"nodata\",reason:\"stale\",limits,updatedAt:Date.now()};\n  node.send([{payload},null,transition(payload)]);\n}, staleMs);\nnode.staleTimers.set(msg.topic, staleTimer);\nconst source = Array.isArray(msg.payload?.data) ? msg.payload.data : (Array.isArray(msg.payload) ? msg.payload : []);\nconst raw = Number(source[0]);\nif (!Number.isFinite(raw) || raw === 32767 || raw === -32768) {\n  const payload={key:msg.topic,code:gas.code,name:gas.name,value:null,raw:null,status:\"nodata\",reason:\"invalid\",limits,updatedAt:Date.now()};\n  return [{payload},null,transition(payload)];\n}\nconst value = Math.round(raw) / 10;\nlet status = value >= limits.okLow && value <= limits.okHigh ? \"ok\" : (value >= limits.warnLow && value <= limits.warnHigh ? \"warn\" : \"alarm\");\nconst previousStatus = node.lastStatus?.get(msg.topic);\nconst hysteresis = Math.max(0, number(\"GAS_HYSTERESIS_BAR\",0.1));\nif (previousStatus === \"alarm\" && status !== \"alarm\") {\n  status = value >= limits.warnLow + hysteresis && value <= limits.warnHigh - hysteresis ? \"warn\" : \"alarm\";\n} else if (previousStatus === \"warn\" && status === \"ok\") {\n  status = value >= limits.okLow + hysteresis && value <= limits.okHigh - hysteresis ? \"ok\" : \"warn\";\n}\nconst payload = {key:msg.topic,code:gas.code,name:gas.name,value,raw,status,reason:null,limits,updatedAt:Date.now()};\nreturn [{payload},{payload},transition(payload)];",
     "outputs": 3,
     "timeout": 0,
     "noerr": 0,
@@ -364,7 +339,7 @@
     "type": "function",
     "z": "flow-product",
     "name": "Build HMI state",
-    "func": "const initial = {\n  oxygen:{key:\"oxygen\",code:\"O₂\",name:\"Кислород\",value:null,raw:null,status:\"nodata\",limits:{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8},updatedAt:null},\n  air:{key:\"air\",code:\"AIR\",name:\"Медицинский воздух\",value:null,raw:null,status:\"nodata\",limits:{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8},updatedAt:null},\n  n2o:{key:\"n2o\",code:\"N₂O\",name:\"Закись азота\",value:null,raw:null,status:\"nodata\",limits:{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8},updatedAt:null}\n};\nconst state = context.get(\"gasState\") || initial;\nif (msg.payload?.key && state[msg.payload.key]) state[msg.payload.key] = msg.payload;\nconst staleMs = Math.max(5000, Number(env.get(\"GAS_STALE_TIMEOUT_MS\")) || 20000);\nfor (const key of Object.keys(state)) {\n  if (state[key].updatedAt && Date.now() - state[key].updatedAt > staleMs) {\n    state[key] = {...state[key],value:null,status:\"nodata\",reason:\"stale\"};\n  }\n}\ncontext.set(\"gasState\", state);\nconst order = {ok:0,warn:1,nodata:2,alarm:3};\nconst gases = [\"oxygen\",\"air\",\"n2o\"].map(key => state[key]);\nconst overall = gases.reduce((result, gas) => order[gas.status] > order[result] ? gas.status : result, \"ok\");\nmsg.payload = {clock:new Date().toLocaleString(\"ru-RU\",{timeZone:env.get(\"TZ\")||\"Europe/Moscow\"}),overall,gases};\nreturn msg;",
+    "func": "const initial = {\n  oxygen:{key:\"oxygen\",code:\"O₂\",name:\"Кислород\",value:null,raw:null,status:\"nodata\",limits:{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8},updatedAt:null},\n  air:{key:\"air\",code:\"AIR\",name:\"Медицинский воздух\",value:null,raw:null,status:\"nodata\",limits:{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8},updatedAt:null},\n  n2o:{key:\"n2o\",code:\"N₂O\",name:\"Закись азота\",value:null,raw:null,status:\"nodata\",limits:{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8},updatedAt:null}\n};\nconst state = context.get(\"gasState\") || initial;\nif (msg.payload?.key && state[msg.payload.key]) state[msg.payload.key] = msg.payload;\nconst pollMs = Math.max(500, Number(env.get(\"MODBUS_POLL_INTERVAL_MS\")) || 1000);\nconst staleMs = Math.max(pollMs * 3, Number(env.get(\"GAS_STALE_TIMEOUT_MS\")) || 4000);\nfor (const key of Object.keys(state)) {\n  if (state[key].updatedAt && Date.now() - state[key].updatedAt > staleMs) {\n    state[key] = {...state[key],value:null,status:\"nodata\",reason:\"stale\"};\n  }\n}\ncontext.set(\"gasState\", state);\nconst order = {ok:0,warn:1,nodata:2,alarm:3};\nconst gases = [\"oxygen\",\"air\",\"n2o\"].map(key => state[key]);\nconst overall = gases.reduce((result, gas) => order[gas.status] > order[result] ? gas.status : result, \"ok\");\nmsg.payload = {clock:new Date().toLocaleString(\"ru-RU\",{timeZone:env.get(\"TZ\")||\"Europe/Moscow\"}),overall,gases};\nreturn msg;",
     "outputs": 1,
     "timeout": 0,
     "noerr": 0,
@@ -533,9 +508,7 @@
     "z": "flow-product",
     "name": "Runtime errors",
     "scope": [
-      "read-oxygen",
-      "read-air",
-      "read-n2o",
+      "poll-sequencer",
       "http-influx-write",
       "http-history-query",
       "http-max-send"

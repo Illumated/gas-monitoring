@@ -21,7 +21,9 @@ try {
                 MODBUS_HOST: "modbus-simulator",
                 MODBUS_PORT: "1502",
                 MODBUS_UNIT_ID: "65",
-                MODBUS_POLL_INTERVAL_MS: "1000"
+                MODBUS_POLL_INTERVAL_MS: "1000",
+                MODBUS_COMMAND_DELAY_MS: "300",
+                GAS_STALE_TIMEOUT_MS: "4000"
             }
         }
     );
@@ -32,12 +34,46 @@ try {
     assert.equal(client.tcpHost, "modbus-simulator");
     assert.equal(client.tcpPort, "1502");
     assert.equal(client.unit_id, 65);
+    assert.equal(client.commandDelay, "300");
 
-    for (const read of nodes.filter((node) => node.type === "modbus-read")) {
-        assert.equal(read.unitid, "65");
-        assert.equal(read.rate, "1000");
-        assert.equal(read.rateUnit, "ms");
+    const pollCycle = nodes.find((node) => node.id === "poll-cycle");
+    const sequencer = nodes.find((node) => node.id === "poll-sequencer");
+    assert.equal(pollCycle.repeat, "1");
+    for (const sequence of sequencer.sequences) {
+        assert.equal(sequence.unitid, "65");
     }
+
+    const invalidQueue = spawnSync(
+        process.execPath,
+        [renderer, source, target],
+        {
+            encoding: "utf8",
+            env: {
+                ...process.env,
+                MODBUS_POLL_INTERVAL_MS: "1000",
+                MODBUS_COMMAND_DELAY_MS: "400",
+                GAS_STALE_TIMEOUT_MS: "4000"
+            }
+        }
+    );
+    assert.notEqual(invalidQueue.status, 0);
+    assert.match(invalidQueue.stderr, /MODBUS_COMMAND_DELAY_MS \* 3/);
+
+    const invalidStale = spawnSync(
+        process.execPath,
+        [renderer, source, target],
+        {
+            encoding: "utf8",
+            env: {
+                ...process.env,
+                MODBUS_POLL_INTERVAL_MS: "1000",
+                MODBUS_COMMAND_DELAY_MS: "300",
+                GAS_STALE_TIMEOUT_MS: "2000"
+            }
+        }
+    );
+    assert.notEqual(invalidStale.status, 0);
+    assert.match(invalidStale.stderr, /GAS_STALE_TIMEOUT_MS/);
 } finally {
     await rm(directory, { recursive: true, force: true });
 }
