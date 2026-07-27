@@ -311,6 +311,8 @@ assert.match(byId.get("ui-monitor").format, /\.gm-value strong\{color:#eef6ff;fo
 assert.match(byId.get("ui-monitor").format, /\.gm-card\.is-alarm \.gm-value strong\{color:#ff7080\}/, "pressure value must use the channel state color");
 assert.match(byId.get("ui-monitor").format, /\.gm-badge\{min-width:112px;[\s\S]*font-size:13px/, "channel status badge must be enlarged");
 assert.match(byId.get("ui-monitor").format, /\.gm-card-head p\{margin:0;color:#64b9ea;font-size:20px/, "O2, AIR and N2O channel codes must be enlarged");
+assert.match(byId.get("ui-monitor").format, /\.gm-card\.is-alarm\{border-top-color:#ff5364;animation:gm-alarm-pulse 2\.4s ease-in-out infinite\}/, "alarm card must use the soft pulse animation");
+assert.match(byId.get("ui-monitor").format, /@media\(prefers-reduced-motion:reduce\)\{\.gm-card\.is-alarm\{animation:none;/, "alarm emphasis must respect reduced-motion accessibility");
 
 const engineeringNode = byId.get("fn-engineering-manager");
 const engineeringFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", engineeringNode.func);
