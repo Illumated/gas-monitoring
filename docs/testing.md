@@ -27,6 +27,8 @@
 ```powershell
 npm test
 npm run audit:flow
+npm run audit:secrets
+npm run capacity
 docker compose --env-file .env -f docker/compose.yaml config
 ```
 
@@ -41,6 +43,12 @@ docker compose --env-file .env -f docker/compose.yaml config
 ```
 
 Скрипт проверяет MAX retry, потерю и восстановление Modbus, остановку и возврат InfluxDB, restart Node-RED без startup-спама и стабильный прогон. Для финального software soak используется `-EnduranceMinutes 1440`. Evidence сохраняется в `commissioning-evidence/`.
+
+Полная проверка готовности выпуска, кроме отдельно согласованного 24-часового прогона:
+
+```powershell
+.\scripts\release-check.ps1
+```
 # Тестирование
 
 ## Автоматические проверки

@@ -72,26 +72,28 @@ const envMock = {
 };
 const timerMock = () => ({ testTimer: true });
 
-for (const [raw, value, status] of [
-    [0, 0, "alarm"],
-    [35, 3.5, "warn"],
-    [40, 4, "ok"],
-    [60, 6, "ok"],
-    [65, 6.5, "warn"],
-    [66, 6.6, "alarm"]
-]) {
-    delete normalizeStore.classificationStatus;
-    const result = normalizeFn(
-        { topic: "oxygen", payload: { data: [raw] } },
-        nodeMock,
-        contextMock,
-        envMock,
-        timerMock,
-        () => {}
-    );
-    assert.equal(result[0].payload.value, value);
-    assert.equal(result[0].payload.status, status);
-    assert.equal(result[1].payload.value, value);
+for (const gas of ["oxygen", "air", "n2o"]) {
+    for (const [raw, value, status] of [
+        [0, 0, "alarm"],
+        [35, 3.5, "warn"],
+        [40, 4, "ok"],
+        [60, 6, "ok"],
+        [65, 6.5, "warn"],
+        [66, 6.6, "alarm"]
+    ]) {
+        delete normalizeStore.classificationStatus;
+        const result = normalizeFn(
+            { topic: gas, payload: { data: [raw] } },
+            nodeMock,
+            contextMock,
+            envMock,
+            timerMock,
+            () => {}
+        );
+        assert.equal(result[0].payload.value, value);
+        assert.equal(result[0].payload.status, status, `${gas} raw=${raw}`);
+        assert.equal(result[1].payload.value, value);
+    }
 }
 
 for (const raw of [32767, -32768, Number.NaN]) {
@@ -233,7 +235,12 @@ const maxEnv = {
             MAX_NOTIFICATIONS_ENABLED: "true",
             MAX_BOT_TOKEN: "test-token",
             MAX_CHAT_ID: "123",
-            MAX_API_URL: "https://platform-api2.max.ru"
+            MAX_API_URL: "https://platform-api2.max.ru",
+            MONITOR_ID: "RINIR-ICU-F02-01",
+            SITE_NAME: "Городская больница",
+            LOCATION_NAME: "Реанимация, 2 этаж",
+            GAS_STALE_TIMEOUT_MS: "4000",
+            TZ: "Europe/Moscow"
         }[name] ?? "";
     }
 };
@@ -241,6 +248,44 @@ const maxResult = maxFn(structuredClone(maxEvent), { error() {} }, contextMock, 
 assert.equal(maxResult.url, "https://platform-api2.max.ru/messages?chat_id=123");
 assert.equal(maxResult.headers.Authorization, "test-token");
 assert.match(maxResult.payload.text, /НОРМА → ВНИМАНИЕ/);
+assert.match(maxResult.payload.text, /🟡 ВНИМАНИЕ — Кислород/);
+assert.match(maxResult.payload.text, /Объект: Городская больница/);
+assert.match(maxResult.payload.text, /Расположение: Реанимация, 2 этаж/);
+assert.match(maxResult.payload.text, /Установка: RINIR-ICU-F02-01/);
+
+for (const [event, expected] of [
+    [{ kind: "gas-state-change", name: "Кислород", value: 2.8, from: "warn", to: "alarm", updatedAt: Date.now() }, /🔴 АВАРИЯ/],
+    [{ kind: "gas-state-change", name: "Медицинский воздух", value: null, lastValue: 5.1, from: "ok", to: "nodata", reason: "stale", updatedAt: Date.now() }, /Последнее значение: 5,1 бар[\s\S]*нет достоверных данных более 4 секунд/],
+    [{ kind: "gas-state-change", name: "Медицинский воздух", value: 5.2, from: "nodata", to: "ok", durationMs: 78000, updatedAt: Date.now() }, /✅ ВОССТАНОВЛЕНО[\s\S]*1 мин 18 сек/],
+    [{ kind: "gas-reminder", name: "Закись азота", value: 6.7, from: "alarm", to: "alarm", updatedAt: Date.now() }, /⚠️ НАПОМИНАНИЕ/]
+]) {
+    const result = maxFn({ payload: event }, { error() {} }, contextMock, maxEnv);
+    assert.match(result.payload.text, expected);
+    assert.match(result.payload.text, /Время:/);
+}
+
+const reminderNode = byId.get("fn-max-reminder");
+const reminderFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", reminderNode.func);
+const reminderStore = {};
+const reminderContext = {
+    get(key) { return reminderStore[key]; },
+    set(key, value) { reminderStore[key] = value; }
+};
+flowStore.gasState = {
+    oxygen: { key: "oxygen", name: "Кислород", value: 2.8, status: "alarm", updatedAt: Date.now() }
+};
+const firstReminder = reminderFn({}, nodeMock, reminderContext, {
+    get(name) {
+        return { MAX_NOTIFICATIONS_ENABLED: "true", MAX_REMINDER_INTERVAL_MINUTES: "1" }[name] ?? "";
+    }
+});
+assert.equal(firstReminder.length, 1);
+assert.equal(firstReminder[0].payload.kind, "gas-reminder");
+assert.equal(reminderFn({}, nodeMock, reminderContext, {
+    get(name) {
+        return { MAX_NOTIFICATIONS_ENABLED: "true", MAX_REMINDER_INTERVAL_MINUTES: "1" }[name] ?? "";
+    }
+}).length, 0, "reminder must not repeat before the configured interval");
 assert.equal(byId.get("cfg-ui-base").path, "/dashboard");
 assert.equal(byId.get("cfg-page-monitor").path, "/monitoring");
 assert.equal(byId.get("cfg-page-history").path, "/history");
@@ -291,6 +336,12 @@ const saveResult = engineeringFn(
 assert.equal(saveResult[0].payload.success, true);
 assert.equal(flowStore.runtimeSettings.gases[0].okLow, 4.1);
 assert.equal(saveResult[1].payload.kind, "settings-change");
+const recreatedEngineeringFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", engineeringNode.func);
+const afterRestartLoad = recreatedEngineeringFn(
+    { _client: { socketId: "client-2" }, payload: { action: "engineering-load" } },
+    nodeMock, { get() {}, set() {} }, engineeringEnv
+);
+assert.equal(afterRestartLoad[0].payload.settings.gases[0].okLow, 4.1, "runtime settings must be loaded from persistent flow context after function recreation");
 const rejectedSettings = structuredClone(candidateSettings);
 rejectedSettings.gases[0].warnHigh = 9;
 const rejectedResult = engineeringFn(
@@ -308,6 +359,7 @@ const eventResult = eventFn(
 );
 assert.match(eventResult.payload, /^gas_event,/);
 assert.match(eventResult.payload, /from=ok,to=alarm/);
+assert.match(eventResult.payload, /monitor_id=/);
 
 const maxTrackNode = byId.get("fn-max-track");
 const maxTrackFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", maxTrackNode.func);
@@ -317,5 +369,15 @@ const retryResult = maxTrackFn(
 );
 assert.equal(retryResult.maxAttempt, 2);
 assert.deepEqual(retryResult.payload, { text: "retry" });
+let maxErrors = 0;
+const exhaustedResult = maxTrackFn(
+    { statusCode: 500, maxAttempt: 3, maxRequestBody: { text: "failed" } },
+    { error() { maxErrors += 1; } },
+    contextMock,
+    { get(name) { return name === "MAX_RETRY_COUNT" ? "2" : ""; } }
+);
+assert.equal(exhaustedResult, null);
+assert.equal(maxErrors, 1);
+assert.equal(flowStore.systemHealth.max.status, "error");
 
 console.log("Product flow contract passed: Modbus TCP, scaling, states, HMI and InfluxDB topology");

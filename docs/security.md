@@ -35,6 +35,8 @@
 - `npm audit fix --force` запрещён без анализа breaking changes.
 - Legacy `node-red-dashboard` и `node-red-contrib-influxdb` удалены из product image.
 - Repository lockfile audit после удаления legacy-зависимостей: `0` известных уязвимостей.
+- Для собранного image локально формируются CycloneDX SBOM и перечень Alpine-пакетов командой `scripts/audit-image.ps1`; состав image не передаётся Docker Scout.
+- Аудит image на 27.07.2026: `49` npm findings (`42 high`, `5 moderate`, `2 low`, `0 critical`). Выпуск блокируется при `critical`; high-находки требуют повторного анализа перед production, но не исправляются через `npm audit fix --force`.
 - Токен InfluxDB читается из environment только при формировании HTTP-запроса и не хранится в flow credentials.
 - Токен MAX читается из environment, передаётся в `Authorization` и не сохраняется в flow или Git.
 - Изменение порогов закрыто `SERVICE_ACCESS_CODE`, ограничено по времени и журналируется с именем исполнителя.

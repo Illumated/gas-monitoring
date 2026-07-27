@@ -15,6 +15,21 @@ function integer(name, fallback, min, max) {
     return value;
 }
 
+function requiredText(name, maxLength) {
+    const value = String(process.env[name] || "").trim();
+    if (!value || value.length > maxLength || /[\r\n]/.test(value)) {
+        throw new Error(`${name} must be a non-empty single-line value up to ${maxLength} characters`);
+    }
+    return value;
+}
+
+const monitorId = requiredText("MONITOR_ID", 64);
+requiredText("SITE_NAME", 120);
+requiredText("LOCATION_NAME", 120);
+if (!/^[A-Z0-9][A-Z0-9-]*$/.test(monitorId)) {
+    throw new Error("MONITOR_ID must contain only uppercase Latin letters, digits and hyphens");
+}
+
 const host = process.env.MODBUS_HOST || "192.168.50.10";
 if (!/^[a-zA-Z0-9.-]+$/.test(host)) {
     throw new Error("MODBUS_HOST contains unsupported characters");

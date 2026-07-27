@@ -8,6 +8,15 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
+$dockerCommand = Get-Command docker -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+if (-not $dockerCommand) {
+    $dockerCommand = Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\resources\bin\docker.exe"
+}
+if (-not (Test-Path -LiteralPath $dockerCommand -PathType Leaf)) {
+    throw "docker.exe was not found in PATH or Docker Desktop default location"
+}
+Set-Alias -Name docker -Value $dockerCommand -Scope Script
+
 if (-not $OutputDirectory) {
     $timestamp = (Get-Date).ToUniversalTime().ToString("yyyyMMddTHHmmssZ")
     $OutputDirectory = Join-Path $repositoryRoot "backups\$timestamp"

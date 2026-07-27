@@ -58,6 +58,8 @@ InfluxDB
 - `docs/configuration.md` — назначение и ограничения всех переменных `.env`;
 - `docs/debian-13.md` — production-развёртывание и kiosk;
 - `docs/max-notifications.md` — подключение MAX;
+- `docs/capacity.md` — расчёт диска на 365 суток;
+- `docs/release-verification.md` — единая проверка готовности выпуска;
 - `docs/engineering-console.md` — диагностика и защищённое изменение порогов;
 - `docs/backup-restore.md` — backup и restore.
 

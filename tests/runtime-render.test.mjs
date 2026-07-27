@@ -23,7 +23,10 @@ try {
                 MODBUS_UNIT_ID: "65",
                 MODBUS_POLL_INTERVAL_MS: "1000",
                 MODBUS_COMMAND_DELAY_MS: "300",
-                GAS_STALE_TIMEOUT_MS: "4000"
+                GAS_STALE_TIMEOUT_MS: "4000",
+                MONITOR_ID: "RINIR-ICU-F02-01",
+                SITE_NAME: "Городская больница",
+                LOCATION_NAME: "Реанимация, 2 этаж"
             }
         }
     );
@@ -52,7 +55,10 @@ try {
                 ...process.env,
                 MODBUS_POLL_INTERVAL_MS: "1000",
                 MODBUS_COMMAND_DELAY_MS: "400",
-                GAS_STALE_TIMEOUT_MS: "4000"
+                GAS_STALE_TIMEOUT_MS: "4000",
+                MONITOR_ID: "RINIR-ICU-F02-01",
+                SITE_NAME: "Городская больница",
+                LOCATION_NAME: "Реанимация, 2 этаж"
             }
         }
     );
@@ -68,12 +74,34 @@ try {
                 ...process.env,
                 MODBUS_POLL_INTERVAL_MS: "1000",
                 MODBUS_COMMAND_DELAY_MS: "300",
-                GAS_STALE_TIMEOUT_MS: "2000"
+                GAS_STALE_TIMEOUT_MS: "2000",
+                MONITOR_ID: "RINIR-ICU-F02-01",
+                SITE_NAME: "Городская больница",
+                LOCATION_NAME: "Реанимация, 2 этаж"
             }
         }
     );
     assert.notEqual(invalidStale.status, 0);
     assert.match(invalidStale.stderr, /GAS_STALE_TIMEOUT_MS/);
+
+    const invalidIdentity = spawnSync(
+        process.execPath,
+        [renderer, source, target],
+        {
+            encoding: "utf8",
+            env: {
+                ...process.env,
+                MODBUS_POLL_INTERVAL_MS: "1000",
+                MODBUS_COMMAND_DELAY_MS: "300",
+                GAS_STALE_TIMEOUT_MS: "4000",
+                MONITOR_ID: "РЕАНИМАЦИЯ 2",
+                SITE_NAME: "Городская больница",
+                LOCATION_NAME: "Реанимация, 2 этаж"
+            }
+        }
+    );
+    assert.notEqual(invalidIdentity.status, 0);
+    assert.match(invalidIdentity.stderr, /MONITOR_ID/);
 } finally {
     await rm(directory, { recursive: true, force: true });
 }

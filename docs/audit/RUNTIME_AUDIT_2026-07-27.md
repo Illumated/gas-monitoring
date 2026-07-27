@@ -99,3 +99,27 @@ Legacy `node-red-contrib-influxdb` и `node-red-dashboard` удалены из p
 ## Граница результата
 
 Локальная контейнерная инфраструктура и product flow работоспособны, сохраняют данные и проходят автоматические и браузерные проверки. В штатном режиме без подключённого стенда ожидаемо зафиксирован `ECONNREFUSED 192.168.50.10:502`, и каналы переходят в `НЕТ ДАННЫХ`. До ввода на объекте остаются аппаратная проверка Modbus/4–20 mA, утверждение клинических порогов и финальный осмотр на физическом целевом мониторе.
+
+## Release readiness без целевого ПК и WB-MAI6
+
+Повторная проверка после добавления идентификации установки:
+
+| Проверка | Результат |
+|---|---|
+| Flow audit | 40 объектов, SHA-256 `FEACBA6DE1E8EF8D77E85C7D31E1FE2A303E14C1E8D7977F0A09E62AA8DE887A` |
+| Идентификация | `MONITOR_ID`, `SITE_NAME`, `LOCATION_NAME` обязательны в Compose |
+| MAX mock | Фактически получены warning, alarm, nodata и recovery для трёх газов с объектом, расположением и ID |
+| Пороговые контракты | Все границы O₂, AIR и N₂O, invalid values и гистерезис — PASS |
+| Persistent settings | Повторное создание function использует сохранённый flow context |
+| Backup/restore | PASS; восстановлено 15 Node-RED, 31 InfluxDB data и 1 InfluxDB config files; 5 context files |
+| Repository audit | 0 vulnerabilities |
+| Image npm audit | 49 total: 42 high, 5 moderate, 2 low, 0 critical |
+| Локальный SBOM | CycloneDX: 516 components; Alpine inventory: 86 packages |
+| Ёмкость 365 суток | 94 608 000 точек; требование 20 GiB data + 20 GiB backup |
+| Debian 13 container | официальный `debian:13-slim`; shell/package syntax — PASS |
+| Единый release-check | 12 из 12 шагов PASS |
+| 24-часовой endurance | Не запускался по решению владельца; остаётся обязательным |
+
+Evidence локального прогона: `commissioning-evidence/release-check-20260727T131946Z.json`. Каталог намеренно исключён из Git. Backup проверки сохранён локально в `backups/verification-20260727T131512Z`; тестовые restore volumes после проверки удалены.
+
+После последней пересборки попытка автоматической Chrome-регрессии была остановлена на этапе получения управления открытой вкладкой. Предыдущая проверка целевых разрешений остаётся действующей для базовой компоновки, но добавленные строки идентификации необходимо повторно осмотреть в Chrome перед выпуском.
