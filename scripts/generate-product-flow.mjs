@@ -191,40 +191,29 @@ if (!(limits.warnLow <= limits.okLow && limits.okLow < limits.okHigh && limits.o
   node.error("Invalid threshold order for " + msg.topic);
   return null;
 }
-const transition = payload => {
-  node.lastStatus ||= new Map();
-  const from = node.lastStatus.get(payload.key);
-  node.lastStatus.set(payload.key, payload.status);
-  if (from === payload.status || (from === undefined && payload.status === "ok")) return null;
-  return {payload:{kind:"gas-state-change",key:payload.key,name:payload.name,value:payload.value,from:from || "startup",to:payload.status,reason:payload.reason,updatedAt:payload.updatedAt}};
-};
-const pollMs = Math.max(500, number("MODBUS_POLL_INTERVAL_MS",1000));
-const staleMs = Math.max(pollMs * 3, number("GAS_STALE_TIMEOUT_MS",4000));
-node.staleTimers ||= new Map();
-const previousTimer = node.staleTimers.get(msg.topic);
-if (previousTimer) clearTimeout(previousTimer);
-const staleTimer = setTimeout(() => {
-  const payload={key:msg.topic,code:gas.code,name:gas.name,value:null,raw:null,status:"nodata",reason:"stale",limits,updatedAt:Date.now()};
-  node.send([{payload},null,transition(payload)]);
-}, staleMs);
-node.staleTimers.set(msg.topic, staleTimer);
+const classification = context.get("classificationStatus") || {};
 const source = Array.isArray(msg.payload?.data) ? msg.payload.data : (Array.isArray(msg.payload) ? msg.payload : []);
+if (source.length === 0) return [null,null];
 const raw = Number(source[0]);
 if (!Number.isFinite(raw) || raw === 32767 || raw === -32768) {
+  classification[msg.topic] = "nodata";
+  context.set("classificationStatus", classification);
   const payload={key:msg.topic,code:gas.code,name:gas.name,value:null,raw:null,status:"nodata",reason:"invalid",limits,updatedAt:Date.now()};
-  return [{payload},null,transition(payload)];
+  return [{payload},null];
 }
 const value = Math.round(raw) / 10;
 let status = value >= limits.okLow && value <= limits.okHigh ? "ok" : (value >= limits.warnLow && value <= limits.warnHigh ? "warn" : "alarm");
-const previousStatus = node.lastStatus?.get(msg.topic);
+const previousStatus = classification[msg.topic];
 const hysteresis = Math.max(0, number("GAS_HYSTERESIS_BAR",0.1));
 if (previousStatus === "alarm" && status !== "alarm") {
   status = value >= limits.warnLow + hysteresis && value <= limits.warnHigh - hysteresis ? "warn" : "alarm";
 } else if (previousStatus === "warn" && status === "ok") {
   status = value >= limits.okLow + hysteresis && value <= limits.okHigh - hysteresis ? "ok" : "warn";
 }
+classification[msg.topic] = status;
+context.set("classificationStatus", classification);
 const payload = {key:msg.topic,code:gas.code,name:gas.name,value,raw,status,reason:null,limits,updatedAt:Date.now()};
-return [{payload},{payload},transition(payload)];`;
+return [{payload},{payload}];`;
 
 const stateCode = `const initial = {
   oxygen:{key:"oxygen",code:"O₂",name:"Кислород",value:null,raw:null,status:"nodata",limits:{warnLow:3.5,okLow:4,okHigh:6,warnHigh:6.5,displayMax:8},updatedAt:null},
@@ -244,8 +233,18 @@ context.set("gasState", state);
 const order = {ok:0,warn:1,nodata:2,alarm:3};
 const gases = ["oxygen","air","n2o"].map(key => state[key]);
 const overall = gases.reduce((result, gas) => order[gas.status] > order[result] ? gas.status : result, "ok");
+const reported = context.get("reportedStatus") || {};
+const events = [];
+for (const gas of gases) {
+  if (!gas.updatedAt || reported[gas.key] === gas.status) continue;
+  const from = reported[gas.key];
+  reported[gas.key] = gas.status;
+  if (from === undefined && gas.status === "ok") continue;
+  events.push({payload:{kind:"gas-state-change",key:gas.key,name:gas.name,value:gas.value,from:from || "startup",to:gas.status,reason:gas.reason,updatedAt:Date.now()}});
+}
+context.set("reportedStatus", reported);
 msg.payload = {clock:new Date().toLocaleString("ru-RU",{timeZone:env.get("TZ")||"Europe/Moscow"}),overall,gases};
-return msg;`;
+return [msg,events];`;
 
 const influxWriteCode = `const p = msg.payload;
 if (!p || !Number.isFinite(p.value)) return null;
@@ -337,9 +336,9 @@ const flow = [
   {id:ids.historyUi,type:"ui-template",z:tab,group:ids.historyGroup,name:"HMI: history",order:1,width:12,height:10,format:historyTemplate,templateScope:"local",storeOutMessages:true,fwdInMessages:false,resendOnRefresh:true,className:"gh-widget",x:220,y:700,wires:[[ids.historyQuery]]},
   {id:ids.pollCycle,type:"inject",z:tab,name:"Gas polling cycle",props:[{p:"payload"}],repeat:"1",crontab:"",once:true,onceDelay:1,topic:"",payload:"",payloadType:"date",x:170,y:180,wires:[[ids.pollSequencer]]},
   {id:ids.pollSequencer,type:"modbus-flex-sequencer",z:tab,name:"O₂ → AIR → N₂O",sequences:[{name:"oxygen",unitid:"65",fc:"FC4",address:"5380",quantity:"1"},{name:"air",unitid:"65",fc:"FC4",address:"9476",quantity:"1"},{name:"n2o",unitid:"65",fc:"FC4",address:"13572",quantity:"1"}],server:ids.modbus,showStatusActivities:true,showErrors:true,showWarnings:true,logIOActivities:false,useIOFile:false,ioFile:"",useIOForPayload:false,emptyMsgOnFail:true,keepMsgProperties:true,delayOnStart:false,startDelayTime:"",x:430,y:180,wires:[[ids.normalize],[]]},
-  {id:ids.normalize,type:"function",z:tab,name:"Validate, scale and classify",func:normalizeCode,outputs:3,timeout:0,noerr:0,initialize:"node.staleTimers = new Map(); node.lastStatus = new Map();",finalize:"for (const timer of node.staleTimers?.values() || []) clearTimeout(timer);",libs:[],x:470,y:180,wires:[[ids.state],[ids.influxWrite],[ids.maxRequest]]},
+  {id:ids.normalize,type:"function",z:tab,name:"Validate, scale and classify",func:normalizeCode,outputs:2,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:470,y:180,wires:[[ids.state],[ids.influxWrite]]},
   {id:"clock",type:"inject",z:tab,name:"UI clock",props:[{p:"payload"}],repeat:"1",crontab:"",once:true,onceDelay:0.2,topic:"",payload:"",payloadType:"date",x:470,y:100,wires:[[ids.state]]},
-  {id:ids.state,type:"function",z:tab,name:"Build HMI state",func:stateCode,outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:760,y:180,wires:[["ui-monitor"]]},
+  {id:ids.state,type:"function",z:tab,name:"Build HMI state and transitions",func:stateCode,outputs:2,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:760,y:180,wires:[["ui-monitor"],[ids.maxRequest]]},
   {id:ids.influxWrite,type:"function",z:tab,name:"Build InfluxDB v2 write",func:influxWriteCode,outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:770,y:280,wires:[[ids.influxWriteHttp]]},
   {id:ids.influxWriteHttp,type:"http request",z:tab,name:"InfluxDB write",method:"use",ret:"txt",paytoqs:"ignore",url:"",tls:"",persist:false,proxy:"",insecureHTTPParser:false,authType:"",senderr:true,headers:[],x:1040,y:280,wires:[[]]},
   {id:ids.maxRequest,type:"function",z:tab,name:"Build MAX state notification",func:maxRequestCode,outputs:1,timeout:0,noerr:0,initialize:"",finalize:"",libs:[],x:780,y:360,wires:[[ids.maxHttp]]},

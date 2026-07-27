@@ -51,8 +51,12 @@ for (const sequence of sequencer.sequences) {
 
 const normalize = byId.get("fn-normalize");
 const normalizeFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", normalize.func);
-const nodeMock = { staleTimers: new Map(), lastStatus: new Map(), send() {}, error() {} };
-const contextMock = { get() {}, set() {} };
+const nodeMock = { send() {}, error() {} };
+const normalizeStore = {};
+const contextMock = {
+    get(key) { return normalizeStore[key]; },
+    set(key, value) { normalizeStore[key] = value; }
+};
 const envMock = {
     get(name) {
         return {
@@ -71,7 +75,7 @@ for (const [raw, value, status] of [
     [65, 6.5, "warn"],
     [66, 6.6, "alarm"]
 ]) {
-    nodeMock.lastStatus.clear();
+    delete normalizeStore.classificationStatus;
     const result = normalizeFn(
         { topic: "oxygen", payload: { data: [raw] } },
         nodeMock,
@@ -86,7 +90,7 @@ for (const [raw, value, status] of [
 }
 
 for (const raw of [32767, -32768, Number.NaN]) {
-    nodeMock.lastStatus.clear();
+    delete normalizeStore.classificationStatus;
     const result = normalizeFn(
         { topic: "air", payload: { data: [raw] } },
         nodeMock,
@@ -100,7 +104,17 @@ for (const raw of [32767, -32768, Number.NaN]) {
     assert.equal(result[1], null);
 }
 
-nodeMock.lastStatus.set("oxygen", "alarm");
+const emptyFailureResult = normalizeFn(
+    { topic: "oxygen", payload: [] },
+    nodeMock,
+    contextMock,
+    envMock,
+    timerMock,
+    () => {}
+);
+assert.deepEqual(emptyFailureResult, [null, null], "one empty Modbus response must wait for centralized stale timeout");
+
+normalizeStore.classificationStatus = { oxygen: "alarm" };
 let hysteresisResult = normalizeFn(
     { topic: "oxygen", payload: { data: [35] } },
     nodeMock,
@@ -145,15 +159,36 @@ let persistedState = {
     air: { key: "air", code: "AIR", name: "Медицинский воздух", value: null, status: "nodata", updatedAt: null },
     n2o: { key: "n2o", code: "N₂O", name: "Закись азота", value: null, status: "nodata", updatedAt: null }
 };
+const stateStore = {
+    gasState: persistedState,
+    reportedStatus: { oxygen: "ok" }
+};
 const stateContext = {
-    get() { return persistedState; },
-    set(_key, value) { persistedState = value; }
+    get(key) { return stateStore[key]; },
+    set(key, value) { stateStore[key] = value; }
 };
 const staleResult = stateFn({}, {}, stateContext, envMock, timerMock, () => {});
-assert.equal(staleResult.payload.gases[0].value, null, "old persisted value must not remain visible");
-assert.equal(staleResult.payload.gases[0].status, "nodata", "old persisted value must become nodata");
+assert.equal(staleResult[0].payload.gases[0].value, null, "old persisted value must not remain visible");
+assert.equal(staleResult[0].payload.gases[0].status, "nodata", "old persisted value must become nodata");
+assert.equal(staleResult[1].length, 1, "stale transition must be emitted once");
+assert.equal(staleResult[1][0].payload.from, "ok");
+assert.equal(staleResult[1][0].payload.to, "nodata");
+const repeatedStaleResult = stateFn({}, {}, stateContext, envMock, timerMock, () => {});
+assert.equal(repeatedStaleResult[1].length, 0, "stable stale state must not repeat notifications");
 
-nodeMock.lastStatus.clear();
+stateStore.gasState.oxygen = {
+    key: "oxygen",
+    code: "O₂",
+    name: "Кислород",
+    value: 5,
+    status: "ok",
+    updatedAt: Date.now() - 3000
+};
+stateStore.reportedStatus.oxygen = "ok";
+const freshResult = stateFn({}, {}, stateContext, envMock, timerMock, () => {});
+assert.equal(freshResult[0].payload.gases[0].status, "ok", "value younger than stale timeout must remain visible");
+
+delete normalizeStore.classificationStatus;
 const sequencerResult = normalizeFn(
     { topic: "poll-sequencer", modbusRequest: { name: "air" }, payload: [52] },
     nodeMock,
@@ -164,6 +199,19 @@ const sequencerResult = normalizeFn(
 );
 assert.equal(sequencerResult[0].payload.key, "air");
 assert.equal(sequencerResult[0].payload.value, 5.2);
+
+let scheduledTimers = 0;
+for (let index = 0; index < 10; index += 1) {
+    normalizeFn(
+        { topic: "oxygen", payload: { data: [50] } },
+        nodeMock,
+        contextMock,
+        envMock,
+        () => { scheduledTimers += 1; },
+        () => {}
+    );
+}
+assert.equal(scheduledTimers, 0, "successful samples must not create per-reading stale timers");
 
 assert.equal(nodes.filter((node) => node.type === "http request").length, 3);
 assert.ok(byId.has("fn-max-request"), "MAX notification request builder must exist");
