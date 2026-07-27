@@ -307,6 +307,9 @@ assert.match(byId.get("ui-monitor").format, /<h1>Контроль давлени
 assert.match(byId.get("ui-monitor").format, /class="gm-clock"/, "clock must use a dedicated status-style panel");
 assert.match(byId.get("ui-monitor").format, />\.v-card>\.v-card-text\{height:100%!important;padding:0!important\}/, "FlowFuse group padding must not create an outer frame");
 assert.match(byId.get("ui-monitor").format, /html:has\(\.gm-page\),body:has\(\.gm-page\)\{overflow:hidden!important\}/, "desktop monitoring must not show an empty document scrollbar");
+assert.match(byId.get("ui-monitor").format, /\.gm-value strong\{color:#eef6ff;font-size:clamp\(72px,8vw,124px\)/, "pressure value must use the enlarged responsive type scale");
+assert.match(byId.get("ui-monitor").format, /\.gm-card\.is-alarm \.gm-value strong\{color:#ff7080\}/, "pressure value must use the channel state color");
+assert.match(byId.get("ui-monitor").format, /\.gm-badge\{min-width:112px;[\s\S]*font-size:13px/, "channel status badge must be enlarged");
 
 const engineeringNode = byId.get("fn-engineering-manager");
 const engineeringFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", engineeringNode.func);
