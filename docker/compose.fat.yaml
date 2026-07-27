@@ -1,6 +1,7 @@
 services:
   node-red:
     environment:
+      HOST_MACHINE_NAME: RINIR-TEST01
       MODBUS_HOST: modbus-simulator
       MODBUS_PORT: 502
       MODBUS_UNIT_ID: 65

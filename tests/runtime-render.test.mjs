@@ -24,9 +24,7 @@ try {
                 MODBUS_POLL_INTERVAL_MS: "1000",
                 MODBUS_COMMAND_DELAY_MS: "300",
                 GAS_STALE_TIMEOUT_MS: "4000",
-                MONITOR_ID: "RINIR-ICU-F02-01",
-                SITE_NAME: "Городская больница",
-                LOCATION_NAME: "Реанимация, 2 этаж"
+                MONITOR_ID: "RINIR-A1B2C3"
             }
         }
     );
@@ -56,9 +54,7 @@ try {
                 MODBUS_POLL_INTERVAL_MS: "1000",
                 MODBUS_COMMAND_DELAY_MS: "400",
                 GAS_STALE_TIMEOUT_MS: "4000",
-                MONITOR_ID: "RINIR-ICU-F02-01",
-                SITE_NAME: "Городская больница",
-                LOCATION_NAME: "Реанимация, 2 этаж"
+                MONITOR_ID: "RINIR-A1B2C3"
             }
         }
     );
@@ -75,9 +71,7 @@ try {
                 MODBUS_POLL_INTERVAL_MS: "1000",
                 MODBUS_COMMAND_DELAY_MS: "300",
                 GAS_STALE_TIMEOUT_MS: "2000",
-                MONITOR_ID: "RINIR-ICU-F02-01",
-                SITE_NAME: "Городская больница",
-                LOCATION_NAME: "Реанимация, 2 этаж"
+                MONITOR_ID: "RINIR-A1B2C3"
             }
         }
     );
@@ -94,9 +88,7 @@ try {
                 MODBUS_POLL_INTERVAL_MS: "1000",
                 MODBUS_COMMAND_DELAY_MS: "300",
                 GAS_STALE_TIMEOUT_MS: "4000",
-                MONITOR_ID: "РЕАНИМАЦИЯ 2",
-                SITE_NAME: "Городская больница",
-                LOCATION_NAME: "Реанимация, 2 этаж"
+                MONITOR_ID: "РЕАНИМАЦИЯ 2"
             }
         }
     );

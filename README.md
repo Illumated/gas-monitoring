@@ -60,7 +60,7 @@ InfluxDB
 - `docs/max-notifications.md` — подключение MAX;
 - `docs/capacity.md` — расчёт диска на 365 суток;
 - `docs/release-verification.md` — единая проверка готовности выпуска;
-- `docs/engineering-console.md` — диагностика и защищённое изменение порогов;
+- `docs/engineering-console.md` — диагностика, данные объекта и защищённое изменение порогов;
 - `docs/backup-restore.md` — backup и restore.
 
 ## Правила репозитория

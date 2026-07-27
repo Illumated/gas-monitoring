@@ -106,8 +106,8 @@ Legacy `node-red-contrib-influxdb` и `node-red-dashboard` удалены из p
 
 | Проверка | Результат |
 |---|---|
-| Flow audit | 40 объектов, SHA-256 `FEACBA6DE1E8EF8D77E85C7D31E1FE2A303E14C1E8D7977F0A09E62AA8DE887A` |
-| Идентификация | `MONITOR_ID`, `SITE_NAME`, `LOCATION_NAME` обязательны в Compose |
+| Flow audit | 40 объектов, SHA-256 `DBED23C8AC607983252E34533815D032CBE27E3343785E5D01EA2EEA50659563` |
+| Идентификация | ID читается из Debian `/etc/hostname`; больница и расположение сохраняются через сервисный раздел |
 | MAX mock | Фактически получены warning, alarm, nodata и recovery для трёх газов с объектом, расположением и ID |
 | Пороговые контракты | Все границы O₂, AIR и N₂O, invalid values и гистерезис — PASS |
 | Persistent settings | Повторное создание function использует сохранённый flow context |
@@ -120,6 +120,6 @@ Legacy `node-red-contrib-influxdb` и `node-red-dashboard` удалены из p
 | Единый release-check | 12 из 12 шагов PASS |
 | 24-часовой endurance | Не запускался по решению владельца; остаётся обязательным |
 
-Evidence локального прогона: `commissioning-evidence/release-check-20260727T131946Z.json`. Каталог намеренно исключён из Git. Backup проверки сохранён локально в `backups/verification-20260727T131512Z`; тестовые restore volumes после проверки удалены.
+Evidence локального прогона: `commissioning-evidence/release-check-20260727T134359Z.json`. Каталог намеренно исключён из Git. Backup проверки сохранён локально в `backups/verification-20260727T131512Z`; тестовые restore volumes после проверки удалены.
 
-После последней пересборки попытка автоматической Chrome-регрессии была остановлена на этапе получения управления открытой вкладкой. Предыдущая проверка целевых разрешений остаётся действующей для базовой компоновки, но добавленные строки идентификации необходимо повторно осмотреть в Chrome перед выпуском.
+После пересборки monitoring и engineering повторно проверены в Chrome при viewport 1366×768. Размер документа равен viewport (`1366×768`), внешней горизонтальной или вертикальной прокрутки нет; строки идентификации и новые поля сервисной формы отображаются корректно.

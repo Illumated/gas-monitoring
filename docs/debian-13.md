@@ -32,6 +32,14 @@ sudo -E ./deploy/debian/install-docker-engine.sh
 
 ## Установка приложения
 
+До запуска приложения общий `firstboot.sh` должен назначить компьютеру постоянный hostname. Этот репозиторий не формирует и не изменяет имя компьютера. Проверить готовое значение:
+
+```bash
+hostnamectl --static
+```
+
+Ожидаемый формат: строго `RINIR-XXXXXX`, где `XXXXXX` — шесть заглавных латинских букв или цифр. Production Compose монтирует `/etc/hostname` в контейнер только для чтения; приложение не нормализует имя и прекращает запуск при другом формате. Windows hostname в production-идентификации не участвует.
+
 ```bash
 sudo install -d -m 0755 /opt/gas-monitoring
 sudo install -d -m 0700 /etc/gas-monitoring
@@ -41,7 +49,7 @@ sudo chmod 0600 /etc/gas-monitoring/gas-monitoring.env
 sudo cp deploy/debian/gas-monitoring.service /etc/systemd/system/
 ```
 
-Заполнить `/etc/gas-monitoring/gas-monitoring.env`. Обязательны уникальные секреты, bcrypt hash редактора Node-RED и фактические параметры Modbus.
+Заполнить `/etc/gas-monitoring/gas-monitoring.env`. Обязательны уникальные секреты, bcrypt hash редактора Node-RED и фактические параметры Modbus. Название больницы и расположение после запуска задаются в сервисном разделе.
 
 ```bash
 cd /opt/gas-monitoring
@@ -86,5 +94,7 @@ sudo docker compose --env-file /etc/gas-monitoring/gas-monitoring.env -f /opt/ga
 curl --fail http://127.0.0.1:1880/
 curl --fail http://127.0.0.1:8086/health
 ```
+
+Затем открыть `http://127.0.0.1:1880/dashboard/engineering`, разблокировать сервисную сессию и сохранить название больницы, расположение и утверждённые пороги.
 
 Официальный источник: [Install Docker Engine on Debian](https://docs.docker.com/engine/install/debian/).

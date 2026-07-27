@@ -23,11 +23,9 @@ function requiredText(name, maxLength) {
     return value;
 }
 
-const monitorId = requiredText("MONITOR_ID", 64);
-requiredText("SITE_NAME", 120);
-requiredText("LOCATION_NAME", 120);
-if (!/^[A-Z0-9][A-Z0-9-]*$/.test(monitorId)) {
-    throw new Error("MONITOR_ID must contain only uppercase Latin letters, digits and hyphens");
+const monitorId = requiredText("MONITOR_ID", 12);
+if (!/^RINIR-[A-Z0-9]{6}$/.test(monitorId)) {
+    throw new Error("MONITOR_ID must match RINIR-XXXXXX");
 }
 
 const host = process.env.MODBUS_HOST || "192.168.50.10";

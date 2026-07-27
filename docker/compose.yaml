@@ -58,9 +58,8 @@ services:
     environment:
       TZ: ${TZ:-Europe/Moscow}
       FLOWS: flows.json
-      MONITOR_ID: ${MONITOR_ID:?set MONITOR_ID in .env}
-      SITE_NAME: ${SITE_NAME:?set SITE_NAME in .env}
-      LOCATION_NAME: ${LOCATION_NAME:?set LOCATION_NAME in .env}
+      HOST_MACHINE_NAME: ${HOST_MACHINE_NAME:-RINIR-TEST01}
+      HOST_HOSTNAME_FILE: /run/host-hostname
       NODE_RED_CREDENTIAL_SECRET: ${NODE_RED_CREDENTIAL_SECRET:?set NODE_RED_CREDENTIAL_SECRET in .env}
       NODE_RED_ADMIN_USER: ${NODE_RED_ADMIN_USER:-admin}
       NODE_RED_ADMIN_PASSWORD_HASH: ${NODE_RED_ADMIN_PASSWORD_HASH:-}

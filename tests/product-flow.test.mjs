@@ -229,6 +229,10 @@ const maxNode = byId.get("fn-max-request");
 const maxFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", maxNode.func);
 const maxEvent = { payload: { kind: "gas-state-change", name: "Кислород", value: 3.5, from: "ok", to: "warn" } };
 assert.equal(maxFn(maxEvent, { error() {} }, contextMock, envMock), null, "MAX must be disabled by default");
+flowStore.runtimeSettings = {
+    siteName: "Городская больница",
+    locationName: "Реанимация, 2 этаж"
+};
 const maxEnv = {
     get(name) {
         return {
@@ -236,9 +240,7 @@ const maxEnv = {
             MAX_BOT_TOKEN: "test-token",
             MAX_CHAT_ID: "123",
             MAX_API_URL: "https://platform-api2.max.ru",
-            MONITOR_ID: "RINIR-ICU-F02-01",
-            SITE_NAME: "Городская больница",
-            LOCATION_NAME: "Реанимация, 2 этаж",
+            MONITOR_ID: "RINIR-A1B2C3",
             GAS_STALE_TIMEOUT_MS: "4000",
             TZ: "Europe/Moscow"
         }[name] ?? "";
@@ -251,7 +253,7 @@ assert.match(maxResult.payload.text, /НОРМА → ВНИМАНИЕ/);
 assert.match(maxResult.payload.text, /🟡 ВНИМАНИЕ — Кислород/);
 assert.match(maxResult.payload.text, /Объект: Городская больница/);
 assert.match(maxResult.payload.text, /Расположение: Реанимация, 2 этаж/);
-assert.match(maxResult.payload.text, /Установка: RINIR-ICU-F02-01/);
+assert.match(maxResult.payload.text, /Установка: RINIR-A1B2C3/);
 
 for (const [event, expected] of [
     [{ kind: "gas-state-change", name: "Кислород", value: 2.8, from: "warn", to: "alarm", updatedAt: Date.now() }, /🔴 АВАРИЯ/],
@@ -293,6 +295,9 @@ assert.equal(byId.get("cfg-page-events").path, "/events");
 assert.equal(byId.get("cfg-page-engineering").path, "/engineering");
 assert.ok(byId.has("fn-event-write"), "event journal writer must exist");
 assert.ok(byId.has("fn-engineering-manager"), "engineering settings manager must exist");
+assert.match(byId.get("ui-engineering").format, /ID установки из Debian hostname/);
+assert.match(byId.get("ui-engineering").format, /Название больницы/);
+assert.match(byId.get("ui-engineering").format, /Расположение/);
 assert.match(byId.get("ui-history").format, /limits\.displayMax/, "history scale must use runtime display maximum");
 assert.match(byId.get("ui-history").format, /segments/, "history must render data gaps as separate segments");
 assert.match(byId.get("ui-monitor").format, /box-sizing:border-box/, "desktop HMI must include padding in its viewport height");
@@ -311,7 +316,8 @@ const engineeringEnv = {
         return {
             SERVICE_ACCESS_CODE: "test-code",
             SERVICE_UNLOCK_MINUTES: "15",
-            GAS_STALE_TIMEOUT_MS: "4000"
+            GAS_STALE_TIMEOUT_MS: "4000",
+            MONITOR_ID: "RINIR-A1B2C3"
         }[name] ?? "";
     }
 };
@@ -321,6 +327,8 @@ const unlockResult = engineeringFn(
 );
 assert.equal(unlockResult[0].payload.unlocked, true);
 const candidateSettings = {
+    siteName: "Городская больница",
+    locationName: "Реанимация, 2 этаж",
     gases: [
         { key: "oxygen", name: "Кислород", warnLow: 3.5, okLow: 4.1, okHigh: 6, warnHigh: 6.5 },
         { key: "air", name: "Медицинский воздух", warnLow: 3.5, okLow: 4, okHigh: 6, warnHigh: 6.5 },
@@ -334,6 +342,11 @@ const saveResult = engineeringFn(
     nodeMock, engineeringContext, engineeringEnv
 );
 assert.equal(saveResult[0].payload.success, true);
+assert.equal(saveResult[0].payload.identity.monitorId, "RINIR-A1B2C3");
+assert.equal(saveResult[0].payload.identity.siteName, "Городская больница");
+assert.equal(saveResult[0].payload.identity.locationName, "Реанимация, 2 этаж");
+assert.equal(flowStore.runtimeSettings.siteName, "Городская больница");
+assert.equal(flowStore.runtimeSettings.locationName, "Реанимация, 2 этаж");
 assert.equal(flowStore.runtimeSettings.gases[0].okLow, 4.1);
 assert.equal(saveResult[1].payload.kind, "settings-change");
 const recreatedEngineeringFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", engineeringNode.func);
@@ -350,6 +363,14 @@ const rejectedResult = engineeringFn(
 );
 assert.equal(rejectedResult[0].payload.success, false);
 assert.equal(flowStore.runtimeSettings.gases[0].warnHigh, 6.5, "invalid settings must not partially persist");
+const missingLocation = structuredClone(candidateSettings);
+missingLocation.locationName = "";
+const missingLocationResult = engineeringFn(
+    { _client: { socketId: "client-1" }, payload: { action: "engineering-save", operator: "TEST", settings: missingLocation } },
+    nodeMock, engineeringContext, engineeringEnv
+);
+assert.equal(missingLocationResult[0].payload.success, false);
+assert.equal(flowStore.runtimeSettings.locationName, "Реанимация, 2 этаж", "empty location must not partially persist");
 
 const eventNode = byId.get("fn-event-write");
 const eventFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", eventNode.func);

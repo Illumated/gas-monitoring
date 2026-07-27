@@ -16,3 +16,6 @@ services:
         max-size: 10m
         max-file: "5"
     pids_limit: 256
+    volumes:
+      - node-red-data:/data
+      - /etc/hostname:/run/host-hostname:ro

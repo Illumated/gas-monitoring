@@ -23,6 +23,7 @@ COPY --chown=node-red:node-red docker/modbus-simulator.cjs /opt/gas-monitoring/m
 COPY --chown=node-red:node-red docker/max-mock.cjs /opt/gas-monitoring/max-mock.cjs
 COPY --chown=node-red:node-red docker/configure-influx-retention.cjs /opt/gas-monitoring/configure-influx-retention.cjs
 COPY --chown=node-red:node-red docker/render-runtime-flow.cjs /opt/gas-monitoring/render-runtime-flow.cjs
+COPY --chown=node-red:node-red docker/derive-monitor-id.cjs /opt/gas-monitoring/derive-monitor-id.cjs
 
 RUN chmod 0555 /opt/gas-monitoring/start.sh
 

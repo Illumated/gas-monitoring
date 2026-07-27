@@ -7,9 +7,6 @@
 В локальном `.env` или `/etc/gas-monitoring/gas-monitoring.env`:
 
 ```dotenv
-MONITOR_ID=RINIR-ICU-F02-01
-SITE_NAME=Городская больница
-LOCATION_NAME=Реанимация, 2 этаж
 MAX_NOTIFICATIONS_ENABLED=true
 MAX_API_URL=https://platform-api2.max.ru
 MAX_BOT_TOKEN=<токен-бота>
@@ -22,7 +19,7 @@ MAX_RETRY_COUNT=2
 
 Токен передаётся только заголовком `Authorization`, как требует актуальный API. Реальный токен запрещено помещать в Git; в `.env.example` остаётся пустое значение, а production-файл имеет права `0600`.
 
-`MONITOR_ID` идентифицирует весь пост мониторинга. Он не заменяет Modbus Unit ID и серийный номер WB-MAI6.
+ID установки берётся из Debian hostname формата `RINIR-XXXXXX`. Название больницы и расположение задаются через `/dashboard/engineering`. До их заполнения уведомления содержат явные значения `ОБЪЕКТ НЕ НАСТРОЕН` и `РАСПОЛОЖЕНИЕ НЕ НАСТРОЕНО`.
 
 ## Формат сообщений
 
@@ -33,7 +30,7 @@ MAX_RETRY_COUNT=2
 
 Объект: Городская больница
 Расположение: Реанимация, 2 этаж
-Установка: RINIR-ICU-F02-01
+Установка: RINIR-A1B2C3
 
 Давление: 2,8 бар
 Переход: ВНИМАНИЕ → АВАРИЯ
