@@ -63,11 +63,17 @@ docker compose --profile fat --env-file .env `
 Сценарии:
 
 ```powershell
-Invoke-WebRequest -Method Post http://127.0.0.1:18080/scenario/zero
-Invoke-WebRequest -Method Post http://127.0.0.1:18080/scenario/warning
-Invoke-WebRequest -Method Post http://127.0.0.1:18080/scenario/alarm
-Invoke-WebRequest -Method Post http://127.0.0.1:18080/scenario/nodata
-Invoke-WebRequest -Method Post http://127.0.0.1:18080/scenario/normal
+.\scripts\fat.ps1 -Scenario zero
+.\scripts\fat.ps1 -Scenario warning
+.\scripts\fat.ps1 -Scenario alarm
+.\scripts\fat.ps1 -Scenario nodata
+.\scripts\fat.ps1 -Scenario normal
+```
+
+Текущее состояние без изменения регистров:
+
+```powershell
+.\scripts\fat.ps1 -Scenario status
 ```
 
 Симуляция не заменяет проверку USR-DR134, WB-MAI6 и токовых петель.

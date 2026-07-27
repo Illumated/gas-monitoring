@@ -12,10 +12,11 @@ const registers = new Map([
 const scenarios = {
     normal: { 5380: 50, 9476: 52, 13572: 48 },
     zero: { 5380: 0, 9476: 0, 13572: 0 },
-    warning: { 5380: 35, 9476: 65, 13572: 39 },
+    warning: { 5380: 38, 9476: 62, 13572: 39 },
     alarm: { 5380: 20, 9476: 80, 13572: 70 },
     nodata: { 5380: 32767, 9476: 32767, 13572: 32767 }
 };
+let currentScenario = "normal";
 
 function apply(values) {
     for (const [address, value] of Object.entries(values)) {
@@ -44,15 +45,16 @@ const modbus = new ModbusRTU.ServerTCP(vector, {
 const control = http.createServer((request, response) => {
     if (request.method === "GET" && request.url === "/health") {
         response.writeHead(200, { "Content-Type": "application/json" });
-        response.end(JSON.stringify({ status: "pass", registers: Object.fromEntries(registers) }));
+        response.end(JSON.stringify({ status: "pass", scenario: currentScenario, registers: Object.fromEntries(registers) }));
         return;
     }
 
     const match = request.method === "POST" && request.url?.match(/^\/scenario\/([a-z]+)$/);
     if (match && scenarios[match[1]]) {
         apply(scenarios[match[1]]);
-        response.writeHead(204);
-        response.end();
+        currentScenario = match[1];
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ status: "applied", scenario: currentScenario, registers: Object.fromEntries(registers) }));
         return;
     }
 
