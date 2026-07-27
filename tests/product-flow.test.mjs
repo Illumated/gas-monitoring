@@ -85,6 +85,21 @@ for (const raw of [32767, -32768, Number.NaN]) {
     assert.equal(result[1], null);
 }
 
+const stateNode = byId.get("fn-state");
+const stateFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", stateNode.func);
+let persistedState = {
+    oxygen: { key: "oxygen", code: "O₂", name: "Кислород", value: 5, status: "ok", updatedAt: Date.now() - 30000 },
+    air: { key: "air", code: "AIR", name: "Медицинский воздух", value: null, status: "nodata", updatedAt: null },
+    n2o: { key: "n2o", code: "N₂O", name: "Закись азота", value: null, status: "nodata", updatedAt: null }
+};
+const stateContext = {
+    get() { return persistedState; },
+    set(_key, value) { persistedState = value; }
+};
+const staleResult = stateFn({}, {}, stateContext, envMock, timerMock, () => {});
+assert.equal(staleResult.payload.gases[0].value, null, "old persisted value must not remain visible");
+assert.equal(staleResult.payload.gases[0].status, "nodata", "old persisted value must become nodata");
+
 assert.equal(nodes.filter((node) => node.type === "http request").length, 2);
 assert.equal(byId.get("cfg-ui-base").path, "/dashboard");
 assert.equal(byId.get("cfg-page-monitor").path, "/monitoring");

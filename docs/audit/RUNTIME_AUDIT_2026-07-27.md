@@ -34,6 +34,7 @@ node-red-contrib-modbus 5.45.2
 |---|---|
 | Compose config | PASS |
 | Node-RED image build | PASS |
+| Node-RED build `--no-cache --pull` | PASS |
 | Node-RED healthcheck | PASS |
 | InfluxDB healthcheck | PASS |
 | `/dashboard/monitoring` | HTTP 200 |
@@ -54,6 +55,9 @@ node-red-contrib-modbus 5.45.2
 | Built image audit | 49 warnings: 42 high, 5 moderate, 2 low, 0 critical |
 | Product dashboard routes | monitoring HTTP 200, history HTTP 200 |
 | Simulation write pipeline | По 8 точек O₂, AIR и N₂O за проверочный интервал |
+| Product backup manifest | Git `9942fbf9d40fb2ced8cce55ab0a917ffd4be99c3`, 3 архива, без секретов |
+| Product restore flow hash | `A08818DE133B34485F12CC6943142343C6F5E0B6C2143503172AE8CDBE331E4B`, совпадает с source |
+| Product restore InfluxDB data | 27 engine files, PASS |
 
 ## Подтверждённые runtime-дефекты baseline
 
@@ -76,6 +80,8 @@ Error: Circular config node dependency detected: modbus-client
 
 После замены flow Node-RED запускается без circular dependency, unknown nodes и syntax errors. Оба контейнера получают статус `healthy`. Стендовый режим сформировал значения всех трёх каналов, а read-only Flux-запрос подтвердил отдельные серии `oxygen`, `air` и `n2o`.
 
+Backup продуктового состояния создан в `backups/product-acceptance-9942fbf`. Все три архива восстановлены в отдельные volumes, их checksum проверены, hash восстановленного flow совпал с рабочим файлом, InfluxDB engine-файлы присутствовали. После проверки только временные restore volumes удалены; backup сохранён. Runtime возвращён в `SIMULATION_MODE=false`.
+
 Визуальная браузерная приёмка в текущем сеансе не выполнена: доступный автоматизированный browser backend отсутствовал. HTTP-маршруты и серверный runtime проверены; фактический вид на целевых разрешениях остаётся ручным acceptance gate.
 
 ## Dependency risk
@@ -86,4 +92,4 @@ Legacy `node-red-contrib-influxdb` и `node-red-dashboard` удалены из p
 
 ## Граница результата
 
-Локальная контейнерная инфраструктура и product flow работоспособны, сохраняют данные и проходят автоматические проверки. До ввода на объекте остаются аппаратная проверка Modbus/4–20 mA, утверждение клинических порогов и визуальная приёмка на целевом мониторе.
+Локальная контейнерная инфраструктура и product flow работоспособны, сохраняют данные и проходят автоматические проверки. В штатном режиме без подключённого стенда ожидаемо зафиксирован `ECONNREFUSED 192.168.50.10:502`, и каналы переходят в `НЕТ ДАННЫХ`. До ввода на объекте остаются аппаратная проверка Modbus/4–20 mA, утверждение клинических порогов и визуальная приёмка на целевом мониторе.

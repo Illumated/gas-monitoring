@@ -2,31 +2,31 @@
 
 ## Build
 
-- [ ] Images закреплены version и digest.
-- [ ] `docker compose config` проходит.
-- [ ] Build воспроизводится из чистого cache.
-- [ ] Secret scan проходит.
+- [x] Images закреплены version и digest.
+- [x] `docker compose config` проходит.
+- [x] Build воспроизводится без cache.
+- [x] Secret scan проходит.
 
 ## Runtime
 
-- [ ] Node-RED healthy.
-- [ ] InfluxDB healthy.
-- [ ] Volumes сохраняются после restart.
-- [ ] Startup logs не содержат unknown nodes.
-- [ ] Dashboard routes открываются.
+- [x] Node-RED healthy.
+- [x] InfluxDB healthy.
+- [x] Volumes сохраняются после restart.
+- [x] Startup logs не содержат unknown nodes.
+- [x] Dashboard routes открываются.
 
 ## Flow
 
-- [ ] Три канала имеют документированное соответствие газам.
-- [ ] Scaling подтверждён.
-- [ ] Invalid values дают `НЕТ ДАННЫХ`.
-- [ ] Stale timeout работает.
+- [x] Три канала имеют документированное соответствие газам.
+- [x] Scaling подтверждён программным contract test.
+- [x] Invalid values дают `НЕТ ДАННЫХ`.
+- [x] Stale timeout работает, включая context после restart.
 - [ ] Reconnect не требует ручного Deploy.
 
 ## HMI
 
-- [ ] Четыре статуса различимы текстом.
-- [ ] Общий статус однозначен.
+- [x] Четыре статуса заданы текстом независимо от цвета.
+- [x] Общий статус имеет фиксированный приоритет.
 - [ ] 1280×720, 1366×768 и 1920×1080 без scroll.
 - [ ] `0.0 bar` не похоже на отсутствие данных.
 
@@ -39,7 +39,7 @@
 
 ## Operations
 
-- [ ] Backup/restore проверен.
+- [x] Backup/restore проверен.
 - [ ] Документирован rollback.
 - [ ] Утверждены пороги.
 - [ ] Выполнены security requirements.
