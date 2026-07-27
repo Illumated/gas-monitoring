@@ -33,6 +33,14 @@ docker compose --env-file .env -f docker/compose.yaml config
 Физические тесты не заменяются симуляцией.
 
 Аппаратный FAT, параметры команд и evidence описаны в `docs/hardware-fat.md`; подписываемая форма находится в `docs/hardware-fat-protocol.md`.
+
+Полный software fault FAT:
+
+```powershell
+.\scripts\software-fat.ps1 -EnduranceMinutes 60
+```
+
+Скрипт проверяет MAX retry, потерю и восстановление Modbus, остановку и возврат InfluxDB, restart Node-RED без startup-спама и стабильный прогон. Для финального software soak используется `-EnduranceMinutes 1440`. Evidence сохраняется в `commissioning-evidence/`.
 # Тестирование
 
 ## Автоматические проверки
@@ -81,3 +89,7 @@ Simulator также реализует конфигурационные holding
 - `32767` дал `nodata`;
 - после `pause` simulator на время больше `GAS_STALE_TIMEOUT_MS` и последующего `unpause` свежие точки трёх каналов появились без Deploy;
 - аппаратные проверки 4/12/20 мА, обрывы петель и длительный тест остаются обязательными на объекте.
+- retention bucket автоматически подтверждён как `8760h`;
+- история использует фактические пороги и разрывает линию при отсутствии данных;
+- переходы состояния и изменения порогов сохраняются в отдельном журнале;
+- MAX mock подтверждает повторную доставку после двух HTTP 500.

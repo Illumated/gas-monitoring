@@ -68,6 +68,9 @@ Windows 10 / Docker Desktop / WSL2
 - локальные страницы `/dashboard/monitoring` и `/dashboard/history`;
 - отдельный FAT-профиль поднимает Modbus TCP simulator; внутреннего обхода Modbus в product flow нет;
 - пороги каждого газа и гистерезис задаются environment-параметрами;
+- подтверждённые сервисные изменения порогов сохраняются в persistent context и журналируются;
+- `gas_pressure` хранит измерения, `gas_event` — переходы состояния и изменения конфигурации;
+- retention обоих типов данных составляет 365 суток;
 - переходы состояния могут отправляться в MAX, интеграция по умолчанию отключена.
 
 Назначение и допустимые сочетания environment-параметров описаны в [configuration.md](configuration.md).

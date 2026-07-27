@@ -12,6 +12,7 @@ services:
       DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:?set INFLUXDB_ORG in .env}
       DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:?set INFLUXDB_BUCKET in .env}
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:?set INFLUXDB_TOKEN in .env}
+      DOCKER_INFLUXDB_INIT_RETENTION: ${INFLUXDB_RETENTION:-8760h}
     ports:
       - "127.0.0.1:${INFLUXDB_PORT:-8086}:8086"
     volumes:
@@ -23,6 +24,26 @@ services:
       timeout: 5s
       retries: 12
       start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+  influx-retention:
+    image: gas-monitoring-node-red:0.1.0
+    restart: "no"
+    entrypoint:
+      - node
+      - /opt/gas-monitoring/configure-influx-retention.cjs
+    environment:
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_ORG: ${INFLUXDB_ORG:?set INFLUXDB_ORG in .env}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:?set INFLUXDB_BUCKET in .env}
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:?set INFLUXDB_TOKEN in .env}
+      INFLUXDB_RETENTION: ${INFLUXDB_RETENTION:-8760h}
+    depends_on:
+      influxdb:
+        condition: service_healthy
     security_opt:
       - no-new-privileges:true
     networks:
@@ -40,6 +61,8 @@ services:
       NODE_RED_CREDENTIAL_SECRET: ${NODE_RED_CREDENTIAL_SECRET:?set NODE_RED_CREDENTIAL_SECRET in .env}
       NODE_RED_ADMIN_USER: ${NODE_RED_ADMIN_USER:-admin}
       NODE_RED_ADMIN_PASSWORD_HASH: ${NODE_RED_ADMIN_PASSWORD_HASH:-}
+      SERVICE_ACCESS_CODE: ${SERVICE_ACCESS_CODE:-}
+      SERVICE_UNLOCK_MINUTES: ${SERVICE_UNLOCK_MINUTES:-15}
       MODBUS_HOST: ${MODBUS_HOST:-192.168.50.10}
       MODBUS_PORT: ${MODBUS_PORT:-502}
       MODBUS_UNIT_ID: ${MODBUS_UNIT_ID:-65}
@@ -64,6 +87,8 @@ services:
       MAX_API_URL: ${MAX_API_URL:-https://platform-api2.max.ru}
       MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
       MAX_CHAT_ID: ${MAX_CHAT_ID:-}
+      MAX_REMINDER_INTERVAL_MINUTES: ${MAX_REMINDER_INTERVAL_MINUTES:-30}
+      MAX_RETRY_COUNT: ${MAX_RETRY_COUNT:-2}
       INFLUXDB_URL: http://influxdb:8086
       INFLUXDB_ORG: ${INFLUXDB_ORG:?set INFLUXDB_ORG in .env}
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:?set INFLUXDB_BUCKET in .env}
@@ -73,8 +98,8 @@ services:
     volumes:
       - node-red-data:/data
     depends_on:
-      influxdb:
-        condition: service_healthy
+      influx-retention:
+        condition: service_completed_successfully
     healthcheck:
       test:
         - CMD
@@ -114,6 +139,34 @@ services:
         - -e
         - >-
           const r=require('http').get('http://127.0.0.1:8080/health',
+          x=>process.exit(x.statusCode===200?0:1));
+          r.on('error',()=>process.exit(1));
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+  max-mock:
+    image: gas-monitoring-node-red:0.1.0
+    profiles:
+      - fat
+    restart: unless-stopped
+    entrypoint:
+      - node
+      - /opt/gas-monitoring/max-mock.cjs
+    ports:
+      - "127.0.0.1:${MAX_MOCK_PORT:-18081}:8081"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          const r=require('http').get('http://127.0.0.1:8081/health',
           x=>process.exit(x.statusCode===200?0:1));
           r.on('error',()=>process.exit(1));
       interval: 5s

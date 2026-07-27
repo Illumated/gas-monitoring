@@ -9,7 +9,7 @@
   },
   "scripts": {
     "generate:flow": "node scripts/generate-product-flow.mjs",
-    "test": "node tests/validate-flow.mjs && node tests/product-flow.test.mjs && node tests/runtime-render.test.mjs && node tests/wb-mai6-map.test.mjs && node tests/wb-mai6-cli.test.mjs && node tests/hardware-fat-cli.test.mjs",
+    "test": "node tests/validate-flow.mjs && node tests/product-flow.test.mjs && node tests/runtime-render.test.mjs && node tests/wb-mai6-map.test.mjs && node tests/wb-mai6-cli.test.mjs && node tests/hardware-fat-cli.test.mjs && node tests/influx-retention.test.mjs",
     "audit:flow": "node tests/audit-flow.mjs"
   },
   "dependencies": {

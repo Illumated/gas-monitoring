@@ -9,6 +9,7 @@ services:
   node-red:
     environment:
       NODE_RED_ADMIN_PASSWORD_HASH: ${NODE_RED_ADMIN_PASSWORD_HASH:?set bcrypt hash in production env}
+      SERVICE_ACCESS_CODE: ${SERVICE_ACCESS_CODE:?set service access code in production env}
     logging:
       driver: json-file
       options:

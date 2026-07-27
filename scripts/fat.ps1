@@ -21,7 +21,7 @@ $names = @{
     "13572" = "N2O"
 }
 
-$rows = foreach ($property in $result.registers.PSObject.Properties) {
+$rows = foreach ($property in $result.registers.PSObject.Properties | Where-Object { $names.ContainsKey($_.Name) }) {
     $raw = [int]$property.Value
     [pscustomobject]@{
         Gas = $names[$property.Name]

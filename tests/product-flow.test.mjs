@@ -57,6 +57,11 @@ const contextMock = {
     get(key) { return normalizeStore[key]; },
     set(key, value) { normalizeStore[key] = value; }
 };
+const flowStore = {};
+globalThis.flow = {
+    get(key) { return flowStore[key]; },
+    set(key, value) { flowStore[key] = value; }
+};
 const envMock = {
     get(name) {
         return {
@@ -161,7 +166,8 @@ let persistedState = {
 };
 const stateStore = {
     gasState: persistedState,
-    reportedStatus: { oxygen: "ok" }
+    reportedStatus: { oxygen: "ok" },
+    bootAt: Date.now() - 10000
 };
 const stateContext = {
     get(key) { return stateStore[key]; },
@@ -213,7 +219,7 @@ for (let index = 0; index < 10; index += 1) {
 }
 assert.equal(scheduledTimers, 0, "successful samples must not create per-reading stale timers");
 
-assert.equal(nodes.filter((node) => node.type === "http request").length, 3);
+assert.equal(nodes.filter((node) => node.type === "http request").length, 4);
 assert.ok(byId.has("fn-max-request"), "MAX notification request builder must exist");
 assert.ok(byId.has("http-max-send"), "MAX HTTP sender must exist");
 assert.equal(byId.has("fn-simulator"), false, "product flow must not bypass Modbus with an internal simulator");
@@ -238,8 +244,78 @@ assert.match(maxResult.payload.text, /НОРМА → ВНИМАНИЕ/);
 assert.equal(byId.get("cfg-ui-base").path, "/dashboard");
 assert.equal(byId.get("cfg-page-monitor").path, "/monitoring");
 assert.equal(byId.get("cfg-page-history").path, "/history");
+assert.equal(byId.get("cfg-page-events").path, "/events");
+assert.equal(byId.get("cfg-page-engineering").path, "/engineering");
+assert.ok(byId.has("fn-event-write"), "event journal writer must exist");
+assert.ok(byId.has("fn-engineering-manager"), "engineering settings manager must exist");
+assert.match(byId.get("ui-history").format, /limits\.displayMax/, "history scale must use runtime display maximum");
+assert.match(byId.get("ui-history").format, /segments/, "history must render data gaps as separate segments");
 assert.match(byId.get("ui-monitor").format, /box-sizing:border-box/, "desktop HMI must include padding in its viewport height");
 assert.match(byId.get("ui-monitor").format, /grid-template-rows:auto minmax\(0,1fr\) auto/, "desktop HMI must distribute free height between header, cards and footer");
 assert.match(byId.get("ui-monitor").format, /\.nrdb-ui-group\.gm-group \.gm-widget/, "FlowFuse widget wrapper must be sized with the viewport");
+
+const engineeringNode = byId.get("fn-engineering-manager");
+const engineeringFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", engineeringNode.func);
+const engineeringStore = {};
+const engineeringContext = {
+    get(key) { return engineeringStore[key]; },
+    set(key, value) { engineeringStore[key] = value; }
+};
+const engineeringEnv = {
+    get(name) {
+        return {
+            SERVICE_ACCESS_CODE: "test-code",
+            SERVICE_UNLOCK_MINUTES: "15",
+            GAS_STALE_TIMEOUT_MS: "4000"
+        }[name] ?? "";
+    }
+};
+const unlockResult = engineeringFn(
+    { _client: { socketId: "client-1" }, payload: { action: "engineering-unlock", code: "test-code" } },
+    nodeMock, engineeringContext, engineeringEnv
+);
+assert.equal(unlockResult[0].payload.unlocked, true);
+const candidateSettings = {
+    gases: [
+        { key: "oxygen", name: "Кислород", warnLow: 3.5, okLow: 4.1, okHigh: 6, warnHigh: 6.5 },
+        { key: "air", name: "Медицинский воздух", warnLow: 3.5, okLow: 4, okHigh: 6, warnHigh: 6.5 },
+        { key: "n2o", name: "Закись азота", warnLow: 3.5, okLow: 4, okHigh: 6, warnHigh: 6.5 }
+    ],
+    displayMax: 8,
+    hysteresis: 0.1
+};
+const saveResult = engineeringFn(
+    { _client: { socketId: "client-1" }, payload: { action: "engineering-save", operator: "TEST", settings: candidateSettings } },
+    nodeMock, engineeringContext, engineeringEnv
+);
+assert.equal(saveResult[0].payload.success, true);
+assert.equal(flowStore.runtimeSettings.gases[0].okLow, 4.1);
+assert.equal(saveResult[1].payload.kind, "settings-change");
+const rejectedSettings = structuredClone(candidateSettings);
+rejectedSettings.gases[0].warnHigh = 9;
+const rejectedResult = engineeringFn(
+    { _client: { socketId: "client-1" }, payload: { action: "engineering-save", operator: "TEST", settings: rejectedSettings } },
+    nodeMock, engineeringContext, engineeringEnv
+);
+assert.equal(rejectedResult[0].payload.success, false);
+assert.equal(flowStore.runtimeSettings.gases[0].warnHigh, 6.5, "invalid settings must not partially persist");
+
+const eventNode = byId.get("fn-event-write");
+const eventFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", eventNode.func);
+const eventResult = eventFn(
+    { payload: { kind: "gas-state-change", key: "oxygen", name: "Кислород", from: "ok", to: "alarm", value: 2, updatedAt: 123 } },
+    nodeMock, contextMock, maxEnv
+);
+assert.match(eventResult.payload, /^gas_event,/);
+assert.match(eventResult.payload, /from=ok,to=alarm/);
+
+const maxTrackNode = byId.get("fn-max-track");
+const maxTrackFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", maxTrackNode.func);
+const retryResult = maxTrackFn(
+    { statusCode: 500, maxAttempt: 1, maxRequestBody: { text: "retry" } },
+    nodeMock, contextMock, { get(name) { return name === "MAX_RETRY_COUNT" ? "2" : ""; } }
+);
+assert.equal(retryResult.maxAttempt, 2);
+assert.deepEqual(retryResult.payload, { text: "retry" });
 
 console.log("Product flow contract passed: Modbus TCP, scaling, states, HMI and InfluxDB topology");

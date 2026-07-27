@@ -15,6 +15,8 @@ docker compose --env-file .env -f docker/compose.yaml logs --tail 200 influxdb
 - InfluxDB `/health` возвращает `pass`;
 - dashboard явно показывает состояние каждого канала;
 - ошибки Modbus не скрываются старым корректным значением.
+- `/dashboard/engineering` показывает свежесть каналов, InfluxDB и MAX;
+- `/dashboard/events` содержит переходы состояний и изменения порогов.
 
 ## Перезапуск
 

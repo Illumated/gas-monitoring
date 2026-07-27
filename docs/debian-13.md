@@ -59,6 +59,14 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now gas-monitoring.service
 ```
 
+До подключения оборудования выполнить локальную проверку пакета:
+
+```bash
+sudo /opt/gas-monitoring/deploy/debian/validate-package.sh
+```
+
+Она прекращает работу вне Debian 13, проверяет production Compose и unit через `systemd-analyze verify`. Runtime-проверка kiosk и двух сетевых интерфейсов выполняется уже на целевом компьютере.
+
 ## Kiosk
 
 После установки и проверки Chromium скопировать desktop-файл в профиль отдельного непривилегированного kiosk-пользователя:

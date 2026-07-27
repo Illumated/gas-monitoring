@@ -7,8 +7,18 @@ services:
       MODBUS_POLL_INTERVAL_MS: ${MODBUS_POLL_INTERVAL_MS:-1000}
       MODBUS_COMMAND_DELAY_MS: ${MODBUS_COMMAND_DELAY_MS:-300}
       GAS_STALE_TIMEOUT_MS: ${GAS_STALE_TIMEOUT_MS:-4000}
+      SERVICE_ACCESS_CODE: software-fat-code
+      SERVICE_UNLOCK_MINUTES: 15
+      MAX_NOTIFICATIONS_ENABLED: "true"
+      MAX_API_URL: http://max-mock:8081
+      MAX_BOT_TOKEN: software-fat-token
+      MAX_CHAT_ID: software-fat-chat
+      MAX_REMINDER_INTERVAL_MINUTES: ${MAX_REMINDER_INTERVAL_MINUTES:-30}
+      MAX_RETRY_COUNT: ${MAX_RETRY_COUNT:-2}
     depends_on:
       modbus-simulator:
         condition: service_healthy
       influxdb:
+        condition: service_healthy
+      max-mock:
         condition: service_healthy
