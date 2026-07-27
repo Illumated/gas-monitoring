@@ -106,7 +106,7 @@ Legacy `node-red-contrib-influxdb` и `node-red-dashboard` удалены из p
 
 | Проверка | Результат |
 |---|---|
-| Flow audit | 40 объектов, SHA-256 `694A45D594A2A3917D9378D0FC2222E3B68E936DAA52D9479F59790CA83C4901` |
+| Flow audit | 40 объектов, SHA-256 `FCB4671E5C9F9FEC86151A03F52DB597FDC0D5FAEE0F2213BAD974986D16713B` |
 | Идентификация | ID читается из Debian `/etc/hostname`; больница и расположение сохраняются через сервисный раздел |
 | MAX mock | Фактически получены warning, alarm, nodata и recovery для трёх газов с объектом, расположением и ID |
 | Пороговые контракты | Все границы O₂, AIR и N₂O, invalid values и гистерезис — PASS |

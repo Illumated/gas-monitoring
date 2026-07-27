@@ -310,6 +310,7 @@ assert.match(byId.get("ui-monitor").format, /html:has\(\.gm-page\),body:has\(\.g
 assert.match(byId.get("ui-monitor").format, /\.gm-value strong\{color:#eef6ff;font-size:clamp\(72px,8vw,124px\)/, "pressure value must use the enlarged responsive type scale");
 assert.match(byId.get("ui-monitor").format, /\.gm-card\.is-alarm \.gm-value strong\{color:#ff7080\}/, "pressure value must use the channel state color");
 assert.match(byId.get("ui-monitor").format, /\.gm-badge\{min-width:112px;[\s\S]*font-size:13px/, "channel status badge must be enlarged");
+assert.match(byId.get("ui-monitor").format, /\.gm-card-head p\{margin:0;color:#64b9ea;font-size:20px/, "O2, AIR and N2O channel codes must be enlarged");
 
 const engineeringNode = byId.get("fn-engineering-manager");
 const engineeringFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", engineeringNode.func);
