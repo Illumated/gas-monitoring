@@ -8,7 +8,30 @@ const registers = new Map([
     [9476, 52],
     [13572, 48]
 ]);
+function setInputString(address, count, value) {
+    const bytes = Buffer.alloc(count * 2);
+    bytes.write(value, 0, "utf8");
+    for (let index = 0; index < count; index += 1) {
+        registers.set(address + index, bytes.readUInt16BE(index * 2));
+    }
+}
+setInputString(200, 20, "WB-MAI6-SIM");
+setInputString(220, 25, "software-fat");
+setInputString(250, 16, "0.0.0-sim");
+registers.set(266, 0);
+registers.set(267, 0);
+registers.set(268, 0);
+registers.set(269, 1);
+registers.set(270, 0);
+registers.set(271, 1);
+
 const holdingRegisters = new Map();
+holdingRegisters.set(110, 96);
+holdingRegisters.set(111, 0);
+holdingRegisters.set(112, 1);
+holdingRegisters.set(113, 5);
+holdingRegisters.set(114, 0);
+holdingRegisters.set(128, Number(process.env.MODBUS_UNIT_ID || 65));
 for (let channel = 1; channel <= 6; channel += 1) {
     const base = 4096 * channel;
     for (const sideOffset of [0, 1]) {
@@ -23,6 +46,9 @@ const scenarios = {
     zero: { 5380: 0, 9476: 0, 13572: 0 },
     warning: { 5380: 38, 9476: 62, 13572: 39 },
     alarm: { 5380: 20, 9476: 80, 13572: 70 },
+    calibration4: { 5380: 0, 9476: 0, 13572: 0 },
+    calibration12: { 5380: 80, 9476: 80, 13572: 80 },
+    calibration20: { 5380: 160, 9476: 160, 13572: 160 },
     nodata: { 5380: 32767, 9476: 32767, 13572: 32767 }
 };
 let currentScenario = "normal";
@@ -67,7 +93,7 @@ const control = http.createServer((request, response) => {
         return;
     }
 
-    const match = request.method === "POST" && request.url?.match(/^\/scenario\/([a-z]+)$/);
+    const match = request.method === "POST" && request.url?.match(/^\/scenario\/([a-z0-9]+)$/);
     if (match && scenarios[match[1]]) {
         apply(scenarios[match[1]]);
         currentScenario = match[1];

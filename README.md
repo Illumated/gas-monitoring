@@ -13,13 +13,12 @@
 ## Происхождение flow
 
 ```text
-Path: flows/flows.json
-SHA-256: 200698513A4A3B6CC07AADBCC3694B396D4C40EDB5302E0A2147B8C83923B668
-Size: 37308 bytes
-JSON: array of 25 objects
+Immutable baseline: Git 3f068f8:flows/flows.json
+SHA-256: B51B3CD874E496FDDA802CEA91FA8719FAB04FF7DD1BE0D3C4079DB743C1EB57
+Size: 26019 bytes
 ```
 
-Исходный импорт с SHA-256 `B51B…57` сохранён в первом Git-коммите. Происхождение входных материалов описано в `docs/source-register.md`.
+`flows/flows.json` — развиваемый продуктовый flow, поэтому его размер и SHA-256 меняются вместе с осмысленными коммитами. Его текущая структура и контрольная сумма проверяются командой `npm run audit:flow`; происхождение неизменяемого исходного импорта описано в `docs/source-register.md`.
 
 ## Локальный запуск
 
@@ -54,6 +53,8 @@ InfluxDB
 Обязательные эксплуатационные документы:
 
 - `docs/wb-mai6-commissioning.md` — настройка входов 4–20 мА и шкалы;
+- `docs/hardware-fat.md` — read-only inventory, точки 4/12/20 мА, обрыв и длительный прогон;
+- `docs/hardware-fat-protocol.md` — форма подписываемого аппаратного протокола;
 - `docs/configuration.md` — назначение и ограничения всех переменных `.env`;
 - `docs/debian-13.md` — production-развёртывание и kiosk;
 - `docs/max-notifications.md` — подключение MAX;

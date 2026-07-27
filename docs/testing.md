@@ -31,6 +31,8 @@ docker compose --env-file .env -f docker/compose.yaml config
 ```
 
 Физические тесты не заменяются симуляцией.
+
+Аппаратный FAT, параметры команд и evidence описаны в `docs/hardware-fat.md`; подписываемая форма находится в `docs/hardware-fat-protocol.md`.
 # Тестирование
 
 ## Автоматические проверки
@@ -53,6 +55,8 @@ Simulator также реализует конфигурационные holding
 | `warning` | 38 / 62 / 39 | 3.8 / 6.2 / 3.9 bar, `warn`, включая переход из `alarm` с гистерезисом |
 | `alarm` | 20 / 80 / 70 | 2.0 / 8.0 / 7.0 bar, `alarm` |
 | `nodata` | 32767 | `nodata`, значение не пишется в InfluxDB |
+
+Сценарии `calibration4`, `calibration12` и `calibration20` выставляют для всех трёх входов raw `0`, `80` и `160`. Они нужны только для проверки процедуры `hardware-fat.mjs`; физическую точность тракта они не подтверждают.
 
 Проверка reconnect:
 

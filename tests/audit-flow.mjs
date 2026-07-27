@@ -1,7 +1,9 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 const path = new URL("../flows/flows.json", import.meta.url);
-const nodes = JSON.parse(await readFile(path, "utf8"));
+const contents = await readFile(path);
+const nodes = JSON.parse(contents.toString("utf8"));
 const counts = new Map();
 
 for (const node of nodes) {
@@ -26,6 +28,8 @@ const orphanUiBase = nodes
     }));
 
 console.log(JSON.stringify({
+    bytes: contents.byteLength,
+    sha256: createHash("sha256").update(contents).digest("hex").toUpperCase(),
     objects: nodes.length,
     types: Object.fromEntries([...counts].sort(([a], [b]) => a.localeCompare(b))),
     modbusSequencers,
