@@ -1,0 +1,36 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node-RED runtime and credentials
+.node-red/
+flows_cred.json
+*_cred.json
+.config.runtime.json
+.sessions.json
+
+# Local persistent data and backups
+data/
+volumes/
+backups/
+*.backup
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*~
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

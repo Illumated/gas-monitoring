@@ -1,0 +1,1111 @@
+[
+  {
+    "id": "8ec71f3bbce1da92",
+    "type": "tab",
+    "label": "WB-MAI6",
+    "disabled": false,
+    "info": "",
+    "env": []
+  },
+  {
+    "id": "31f2f1efd60a311d",
+    "type": "global-config",
+    "env": [],
+    "modules": {
+      "node-red-contrib-modbus": "5.45.2",
+      "node-red-dashboard": "3.6.6",
+      "@flowfuse/node-red-dashboard": "1.30.2",
+      "node-red-contrib-influxdb": "0.7.0"
+    }
+  },
+  {
+    "id": "modbus-client",
+    "type": "modbus-client",
+    "name": "WB-MAI6 /dev/ttyS0",
+    "clienttype": "serial",
+    "bufferCommands": true,
+    "stateLogEnabled": false,
+    "queueLogEnabled": false,
+    "failureLogEnabled": false,
+    "tcpHost": "127.0.0.1",
+    "tcpPort": "502",
+    "serialPort": "/dev/ttyS0",
+    "serialType": "RTU-BUFFERD",
+    "serialBaudrate": "9600",
+    "serialDatabits": "8",
+    "serialStopbits": "2",
+    "serialParity": "none",
+    "serialConnectionDelay": "100",
+    "serialAsciiResponseStartDelimiter": "",
+    "unit_id": 1,
+    "commandDelay": "",
+    "clientTimeout": "",
+    "reconnectOnTimeout": true,
+    "reconnectTimeout": 2000,
+    "parallelUnitIdsAllowed": false,
+    "showErrors": false,
+    "showWarnings": true,
+    "showLogs": true
+  },
+  {
+    "id": "5a74ca376c817556",
+    "type": "ui_base",
+    "theme": {
+      "name": "theme-light",
+      "lightTheme": {
+        "default": "#0094CE",
+        "baseColor": "#0094CE",
+        "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+        "edited": false
+      },
+      "darkTheme": {
+        "default": "#097479",
+        "baseColor": "#097479",
+        "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+        "edited": false
+      },
+      "customTheme": {
+        "name": "Untitled Theme 1",
+        "default": "#4B7930",
+        "baseColor": "#4B7930",
+        "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+      },
+      "themeState": {
+        "base-color": {
+          "default": "#0094CE",
+          "value": "#0094CE",
+          "edited": false
+        },
+        "page-titlebar-backgroundColor": {
+          "value": "#0094CE",
+          "edited": false
+        },
+        "page-backgroundColor": {
+          "value": "#fafafa",
+          "edited": false
+        },
+        "page-sidebar-backgroundColor": {
+          "value": "#ffffff",
+          "edited": false
+        },
+        "group-textColor": {
+          "value": "#1bbfff",
+          "edited": false
+        },
+        "group-borderColor": {
+          "value": "#ffffff",
+          "edited": false
+        },
+        "group-backgroundColor": {
+          "value": "#ffffff",
+          "edited": false
+        },
+        "widget-textColor": {
+          "value": "#111111",
+          "edited": false
+        },
+        "widget-backgroundColor": {
+          "value": "#0094ce",
+          "edited": false
+        },
+        "widget-borderColor": {
+          "value": "#ffffff",
+          "edited": false
+        },
+        "base-font": {
+          "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+        }
+      },
+      "angularTheme": {
+        "primary": "indigo",
+        "accents": "blue",
+        "warn": "red",
+        "background": "grey",
+        "palette": "light"
+      }
+    },
+    "site": {
+      "name": "Node-RED Dashboard",
+      "hideToolbar": "false",
+      "allowSwipe": "false",
+      "lockMenu": "false",
+      "allowTempTheme": "true",
+      "dateFormat": "DD/MM/YYYY",
+      "sizes": {
+        "sx": 48,
+        "sy": 48,
+        "gx": 6,
+        "gy": 6,
+        "cx": 6,
+        "cy": 6,
+        "px": 0,
+        "py": 0
+      }
+    }
+  },
+  {
+    "id": "1717c59cc0802c4f",
+    "type": "ui-base",
+    "name": "My Dashboard",
+    "path": "/dashboard",
+    "appIcon": "",
+    "includeClientData": true,
+    "acceptsClientConfig": [
+      "ui-notification",
+      "ui-control"
+    ],
+    "showPathInSidebar": false,
+    "headerContent": "page",
+    "navigationStyle": "default",
+    "titleBarStyle": "default",
+    "showReconnectNotification": true,
+    "notificationDisplayTime": 1,
+    "showDisconnectNotification": true,
+    "allowInstall": false
+  },
+  {
+    "id": "d328683ae54a3d87",
+    "type": "ui-theme",
+    "name": "Default Theme",
+    "colors": {
+      "surface": "#ffffff",
+      "primary": "#0094CE",
+      "bgPage": "#eeeeee",
+      "groupBg": "#ffffff",
+      "groupOutline": "#cccccc"
+    },
+    "sizes": {
+      "density": "default",
+      "pagePadding": "12px",
+      "groupGap": "12px",
+      "groupBorderRadius": "4px",
+      "widgetGap": "12px"
+    }
+  },
+  {
+    "id": "db013c67e89a03d5",
+    "type": "ui-page",
+    "name": "Мониторинг",
+    "ui": "1717c59cc0802c4f",
+    "path": "/monitoring",
+    "icon": "home",
+    "layout": "grid",
+    "theme": "d328683ae54a3d87",
+    "breakpoints": [
+      {
+        "name": "Default",
+        "px": "0",
+        "cols": "3"
+      },
+      {
+        "name": "Tablet",
+        "px": "576",
+        "cols": "6"
+      },
+      {
+        "name": "Small Desktop",
+        "px": "768",
+        "cols": "9"
+      },
+      {
+        "name": "Desktop",
+        "px": "1024",
+        "cols": "12"
+      }
+    ],
+    "order": 2,
+    "className": "",
+    "visible": true,
+    "disabled": false
+  },
+  {
+    "id": "26bf5a711d0ded04",
+    "type": "ui-page",
+    "name": "История",
+    "ui": "1717c59cc0802c4f",
+    "path": "/history",
+    "icon": "home",
+    "layout": "grid",
+    "theme": "d328683ae54a3d87",
+    "breakpoints": [
+      {
+        "name": "Default",
+        "px": "0",
+        "cols": "3"
+      },
+      {
+        "name": "Tablet",
+        "px": "576",
+        "cols": "6"
+      },
+      {
+        "name": "Small Desktop",
+        "px": "768",
+        "cols": "9"
+      },
+      {
+        "name": "Desktop",
+        "px": "1024",
+        "cols": "12"
+      }
+    ],
+    "order": 1,
+    "className": "",
+    "visible": true,
+    "disabled": false
+  },
+  {
+    "id": "a53f26e38f3a2423",
+    "type": "ui-group",
+    "name": "Датчики",
+    "page": "26bf5a711d0ded04",
+    "width": "12",
+    "height": 1,
+    "order": 1,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "fe30c03ca1ecb729",
+    "type": "ui-group",
+    "name": "Датчики",
+    "page": "db013c67e89a03d5",
+    "width": "12",
+    "height": 1,
+    "order": 1,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "12eac7c6543d6003",
+    "type": "ui-template",
+    "z": "8ec71f3bbce1da92",
+    "group": "fe30c03ca1ecb729",
+    "name": "CSS: bigger gauge titles",
+    "order": 0,
+    "width": 0,
+    "height": 0,
+    "format": "<style>\n/* Increase title size for selected gauges */\n.rinir-big-title .v-card-title,\n.rinir-big-title .nrdb-widget-title,\n.rinir-big-title .ff-widget-title,\n.rinir-big-title .ff-title,\n.rinir-big-title .v-card-subtitle {\n  font-size: 32px !important;\n  line-height: 1.1 !important;\n  font-weight: 700 !important;\n  text-align: center !important;\n}\n\n/* Center the gauge widget content */\n.rinir-big-title .v-card-text {\n  display: flex;\n  justify-content: center;\n  align-items: center;\n}\n</style>",
+    "templateScope": "global",
+    "storeOutMessages": false,
+    "fwdInMessages": false,
+    "resendOnRefresh": true,
+    "className": ""
+  },
+  {
+    "id": "aa7d887b2ea78828",
+    "type": "influxdb",
+    "hostname": "influxdb",
+    "port": "8086",
+    "protocol": "http",
+    "database": "rinir",
+    "name": "rinir-influx",
+    "usetls": false,
+    "tls": "",
+    "influxdbVersion": "2.0",
+    "url": "http://influxdb:8086",
+    "timeout": "",
+    "rejectUnauthorized": false
+  },
+  {
+    "id": "0e7d5cc1956b074e",
+    "type": "function",
+    "z": "8ec71f3bbce1da92",
+    "name": "Scale to bar",
+    "func": "// берём первое слово из массива и делим на 100\n// при необходимости заменить на пересчёт из Па: value = value / 100000\nlet value = (msg.payload && Array.isArray(msg.payload.data)) ? msg.payload.data[0] : null;\nif (value === null || value === undefined) return null;\nvalue = value / 100; // предположение: устройство отдаёт *100 от бар\nmsg.payload = Number(value.toFixed(3));\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 491.0001678466797,
+    "y": 197.0000123977661,
+    "wires": [
+      [
+        "c4ee78f78988839e",
+        "816cf4b542cc4f06",
+        "1f3ab9e010748195"
+      ]
+    ]
+  },
+  {
+    "id": "816cf4b542cc4f06",
+    "type": "join",
+    "z": "8ec71f3bbce1da92",
+    "name": "Compile report",
+    "mode": "auto",
+    "build": "object",
+    "property": "payload",
+    "propertyType": "msg",
+    "key": "topic",
+    "joiner": "\\n",
+    "joinerType": "str",
+    "useparts": true,
+    "accumulate": false,
+    "timeout": "",
+    "count": "6",
+    "reduceRight": false,
+    "reduceExp": "",
+    "reduceInit": "",
+    "reduceInitType": "num",
+    "reduceFixup": "",
+    "x": 721.0001678466797,
+    "y": 337.0000123977661,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "1f3ab9e010748195",
+    "type": "switch",
+    "z": "8ec71f3bbce1da92",
+    "name": "route to gauges (N)",
+    "property": "topic",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "ch1",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "ch2",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "ch3",
+        "vt": "str"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 3,
+    "x": 731.0001678466797,
+    "y": 197.0000123977661,
+    "wires": [
+      [
+        "585bc6c1691da1d9"
+      ],
+      [
+        "b065aeb83bea8de7"
+      ],
+      [
+        "ee3da56bf33c4ddb"
+      ]
+    ]
+  },
+  {
+    "id": "8b6fed61f362f446",
+    "type": "modbus-read",
+    "z": "8ec71f3bbce1da92",
+    "name": "Channel 1",
+    "topic": "ch1",
+    "showStatusActivities": true,
+    "logIOActivities": false,
+    "showErrors": true,
+    "showWarnings": true,
+    "unitid": "1",
+    "dataType": "HoldingRegister",
+    "adr": "5380",
+    "quantity": "1",
+    "rate": "15000",
+    "rateUnit": "ms",
+    "delayOnStart": false,
+    "enableDeformedMessages": false,
+    "startDelayTime": "",
+    "server": "modbus-client",
+    "useIOFile": false,
+    "ioFile": "",
+    "useIOForPayload": false,
+    "emptyMsgOnFail": true,
+    "x": 241.0001678466797,
+    "y": 157.0000123977661,
+    "wires": [
+      [
+        "0e7d5cc1956b074e"
+      ],
+      []
+    ]
+  },
+  {
+    "id": "1802beaa780fab2f",
+    "type": "modbus-read",
+    "z": "8ec71f3bbce1da92",
+    "name": "Channel 2",
+    "topic": "ch2",
+    "showStatusActivities": true,
+    "logIOActivities": false,
+    "showErrors": true,
+    "showWarnings": true,
+    "unitid": "1",
+    "dataType": "HoldingRegister",
+    "adr": "9476",
+    "quantity": "1",
+    "rate": "15000",
+    "rateUnit": "ms",
+    "delayOnStart": false,
+    "enableDeformedMessages": false,
+    "startDelayTime": "",
+    "server": "modbus-client",
+    "useIOFile": false,
+    "ioFile": "",
+    "useIOForPayload": false,
+    "emptyMsgOnFail": true,
+    "x": 241.0001678466797,
+    "y": 217.0000123977661,
+    "wires": [
+      [
+        "0e7d5cc1956b074e"
+      ],
+      []
+    ]
+  },
+  {
+    "id": "e92ab164ab0d55db",
+    "type": "modbus-read",
+    "z": "8ec71f3bbce1da92",
+    "name": "Channel 3",
+    "topic": "ch3",
+    "showStatusActivities": true,
+    "logIOActivities": false,
+    "showErrors": true,
+    "showWarnings": true,
+    "unitid": "1",
+    "dataType": "HoldingRegister",
+    "adr": "13572",
+    "quantity": "1",
+    "rate": "15000",
+    "rateUnit": "ms",
+    "delayOnStart": false,
+    "enableDeformedMessages": false,
+    "startDelayTime": "",
+    "server": "modbus-client",
+    "useIOFile": false,
+    "ioFile": "",
+    "useIOForPayload": false,
+    "emptyMsgOnFail": true,
+    "x": 241.0001678466797,
+    "y": 277.0000123977661,
+    "wires": [
+      [
+        "0e7d5cc1956b074e"
+      ],
+      []
+    ]
+  },
+  {
+    "id": "585bc6c1691da1d9",
+    "type": "ui-gauge",
+    "z": "8ec71f3bbce1da92",
+    "name": "Кислород",
+    "group": "fe30c03ca1ecb729",
+    "order": 1,
+    "value": "payload",
+    "valueType": "msg",
+    "width": 4,
+    "height": 5,
+    "gtype": "gauge-34",
+    "gstyle": "needle",
+    "title": "Кислород",
+    "alwaysShowTitle": true,
+    "floatingTitlePosition": "top",
+    "units": "bar",
+    "icon": "",
+    "prefix": "",
+    "suffix": "",
+    "segments": [
+      {
+        "from": "0",
+        "color": "#5cd65c",
+        "text": "",
+        "textType": "label"
+      },
+      {
+        "from": "4",
+        "color": "#ffc800",
+        "text": "",
+        "textType": "label"
+      },
+      {
+        "from": "7",
+        "color": "#ea5353",
+        "text": "",
+        "textType": "label"
+      }
+    ],
+    "min": 0,
+    "max": "10",
+    "sizeThickness": 16,
+    "sizeGap": 4,
+    "sizeKeyThickness": 8,
+    "styleRounded": true,
+    "styleGlow": false,
+    "className": "rinir-big-title",
+    "x": 960,
+    "y": 160,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "b065aeb83bea8de7",
+    "type": "ui-gauge",
+    "z": "8ec71f3bbce1da92",
+    "name": "Воздух",
+    "group": "fe30c03ca1ecb729",
+    "order": 2,
+    "value": "payload",
+    "valueType": "msg",
+    "width": 4,
+    "height": 5,
+    "gtype": "gauge-34",
+    "gstyle": "needle",
+    "title": "Воздух",
+    "alwaysShowTitle": true,
+    "floatingTitlePosition": "top",
+    "units": "bar",
+    "icon": "",
+    "prefix": "",
+    "suffix": "",
+    "segments": [
+      {
+        "from": "0",
+        "color": "#5cd65c",
+        "text": "",
+        "textType": "label"
+      },
+      {
+        "from": "4",
+        "color": "#ffc800",
+        "text": "",
+        "textType": "label"
+      },
+      {
+        "from": "7",
+        "color": "#ea5353",
+        "text": "",
+        "textType": "label"
+      }
+    ],
+    "min": 0,
+    "max": "10",
+    "sizeThickness": 16,
+    "sizeGap": 4,
+    "sizeKeyThickness": 8,
+    "styleRounded": true,
+    "styleGlow": false,
+    "className": "rinir-big-title",
+    "x": 960,
+    "y": 200,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "ee3da56bf33c4ddb",
+    "type": "ui-gauge",
+    "z": "8ec71f3bbce1da92",
+    "name": "Закись азота",
+    "group": "fe30c03ca1ecb729",
+    "order": 3,
+    "value": "payload",
+    "valueType": "msg",
+    "width": 4,
+    "height": 5,
+    "gtype": "gauge-34",
+    "gstyle": "needle",
+    "title": "Закись азота",
+    "alwaysShowTitle": true,
+    "floatingTitlePosition": "top",
+    "units": "bar",
+    "icon": "",
+    "prefix": "",
+    "suffix": "",
+    "segments": [
+      {
+        "from": "0",
+        "color": "#5cd65c",
+        "text": "",
+        "textType": "label"
+      },
+      {
+        "from": "4",
+        "color": "#ffc800",
+        "text": "",
+        "textType": "label"
+      },
+      {
+        "from": "7",
+        "color": "#ea5353",
+        "text": "",
+        "textType": "label"
+      }
+    ],
+    "min": 0,
+    "max": "10",
+    "sizeThickness": 16,
+    "sizeGap": 4,
+    "sizeKeyThickness": 8,
+    "styleRounded": true,
+    "styleGlow": false,
+    "className": "rinir-big-title",
+    "x": 980,
+    "y": 240,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "87113a121893fd4c",
+    "type": "function",
+    "z": "8ec71f3bbce1da92",
+    "name": "Build Flux query (180d, 1h mean)",
+    "func": "// msg.payload = 'ch1' | 'ch2' | 'ch3'\nconst ch = (msg.payload || 'ch1').toString();\n\n// Параметры можно потом вынести в env/flow context\nconst bucket = 'rinir';\nconst measurement = 'wbmai6';\nconst field = 'pressure_bar';\nconst range = '-180d';\nconst every = '1h'; // агрегация для 180 дней (чтобы график был лёгким)\n\nmsg.topic = ch;\nmsg.query = `from(bucket: \"${bucket}\")\n  |> range(start: ${range}, stop: now())\n  |> filter(fn: (r) => r._measurement == \"${measurement}\")\n  |> filter(fn: (r) => r._field == \"${field}\")\n  |> filter(fn: (r) => r.channel == \"${ch}\")\n  |> aggregateWindow(every: ${every}, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\", \"channel\"])\n  |> sort(columns: [\"_time\"])`;\nreturn msg;\n",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 710,
+    "y": 520,
+    "wires": [
+      [
+        "c64316af90fbefaa"
+      ]
+    ]
+  },
+  {
+    "id": "c64316af90fbefaa",
+    "type": "influxdb in",
+    "z": "8ec71f3bbce1da92",
+    "influxdb": "aa7d887b2ea78828",
+    "name": "InfluxDB read",
+    "query": "",
+    "rawOutput": false,
+    "precision": "",
+    "retentionPolicy": "",
+    "org": "rinir",
+    "x": 960,
+    "y": 520,
+    "wires": [
+      [
+        "f60f006978a5c13d"
+      ]
+    ]
+  },
+  {
+    "id": "f60f006978a5c13d",
+    "type": "function",
+    "z": "8ec71f3bbce1da92",
+    "name": "To ui-chart points",
+    "func": "// node-red-contrib-influxdb возвращает массив строк (объектов)\n// Ожидаем поля: _time, _value\nconst rows = Array.isArray(msg.payload) ? msg.payload : [];\n\nconst points = rows\n  .filter(r => r && r._time !== undefined && r._value !== undefined)\n  .map(r => ({ x: new Date(r._time).getTime(), y: Number(r._value) }))\n  .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));\n\nmsg.payload = points;\nmsg.action = 'replace';\nreturn msg;\n",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1210,
+    "y": 520,
+    "wires": [
+      [
+        "3591815bd0613599"
+      ]
+    ]
+  },
+  {
+    "id": "c4ee78f78988839e",
+    "type": "function",
+    "z": "8ec71f3bbce1da92",
+    "name": "To Influx point",
+    "func": "// На входе: msg.payload = число (bar), msg.topic = ch1|ch2|ch3\nconst v = Number(msg.payload);\nif (!Number.isFinite(v)) return null;\n\nconst ch = (msg.topic || 'ch1').toString();\n\n// Формат для node-red-contrib-influxdb:\n// [ fieldsObj, tagsObj ]\nmsg.payload = [\n  { pressure_bar: v, time: Date.now() },\n  { channel: ch }\n];\nreturn msg;\n",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 721.0001678466797,
+    "y": 117.00001239776611,
+    "wires": [
+      [
+        "72c6d12b73962984"
+      ]
+    ]
+  },
+  {
+    "id": "72c6d12b73962984",
+    "type": "influxdb out",
+    "z": "8ec71f3bbce1da92",
+    "influxdb": "aa7d887b2ea78828",
+    "name": "InfluxDB write",
+    "measurement": "wbmai6",
+    "precision": "ms",
+    "retentionPolicy": "",
+    "database": "rinir",
+    "precisionV18FluxV20": "ms",
+    "retentionPolicyV18Flux": "",
+    "org": "rinir",
+    "bucket": "wb",
+    "x": 980,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "fb667df55e4902ed",
+    "type": "ui-chart",
+    "z": "8ec71f3bbce1da92",
+    "group": "a53f26e38f3a2423",
+    "name": "History Кислород",
+    "label": "Кислород (bar)",
+    "order": 1,
+    "chartType": "line",
+    "category": "",
+    "categoryType": "str",
+    "xAxisLabel": "",
+    "xAxisProperty": "",
+    "xAxisPropertyType": "timestamp",
+    "xAxisType": "time",
+    "xAxisFormat": "",
+    "xAxisFormatType": "auto",
+    "xmin": "",
+    "xmax": "",
+    "yAxisLabel": "",
+    "yAxisProperty": "",
+    "yAxisPropertyType": "property",
+    "ymin": "0",
+    "ymax": "10",
+    "bins": "",
+    "stackSeries": false,
+    "pointRadius": "",
+    "showLegend": true,
+    "removeOlder": "1",
+    "removeOlderUnit": "3600",
+    "removeOlderPoints": "",
+    "colors": [
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000"
+    ],
+    "textColor": [
+      "#666666"
+    ],
+    "textColorDefault": true,
+    "gridColor": [
+      "#e5e5e5"
+    ],
+    "gridColorDefault": true,
+    "width": 4,
+    "height": 4,
+    "className": "",
+    "interpolation": "linear",
+    "x": 1690,
+    "y": 480,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "a1a710e518549e8c",
+    "type": "ui-chart",
+    "z": "8ec71f3bbce1da92",
+    "group": "a53f26e38f3a2423",
+    "name": "History Воздух",
+    "label": "Воздух (bar)",
+    "order": 2,
+    "chartType": "line",
+    "category": "",
+    "categoryType": "str",
+    "xAxisLabel": "",
+    "xAxisProperty": "",
+    "xAxisPropertyType": "timestamp",
+    "xAxisType": "time",
+    "xAxisFormat": "",
+    "xAxisFormatType": "auto",
+    "xmin": "",
+    "xmax": "",
+    "yAxisLabel": "",
+    "yAxisProperty": "",
+    "yAxisPropertyType": "property",
+    "ymin": "0",
+    "ymax": "10",
+    "bins": "",
+    "stackSeries": false,
+    "pointRadius": "",
+    "showLegend": true,
+    "removeOlder": "1",
+    "removeOlderUnit": "3600",
+    "removeOlderPoints": "",
+    "colors": [
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000"
+    ],
+    "textColor": [
+      "#666666"
+    ],
+    "textColorDefault": true,
+    "gridColor": [
+      "#e5e5e5"
+    ],
+    "gridColorDefault": true,
+    "width": 4,
+    "height": 4,
+    "className": "",
+    "interpolation": "linear",
+    "x": 1680,
+    "y": 520,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "7b864752b496baa3",
+    "type": "ui-chart",
+    "z": "8ec71f3bbce1da92",
+    "group": "a53f26e38f3a2423",
+    "name": "History Закись азота",
+    "label": "Закись азота (bar)",
+    "order": 3,
+    "chartType": "line",
+    "category": "",
+    "categoryType": "str",
+    "xAxisLabel": "",
+    "xAxisProperty": "",
+    "xAxisPropertyType": "timestamp",
+    "xAxisType": "time",
+    "xAxisFormat": "",
+    "xAxisFormatType": "auto",
+    "xmin": "",
+    "xmax": "",
+    "yAxisLabel": "",
+    "yAxisProperty": "",
+    "yAxisPropertyType": "property",
+    "ymin": "0",
+    "ymax": "10",
+    "bins": "",
+    "stackSeries": false,
+    "pointRadius": "",
+    "showLegend": true,
+    "removeOlder": "1",
+    "removeOlderUnit": "3600",
+    "removeOlderPoints": "",
+    "colors": [
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000",
+      "#000000"
+    ],
+    "textColor": [
+      "#666666"
+    ],
+    "textColorDefault": true,
+    "gridColor": [
+      "#e5e5e5"
+    ],
+    "gridColorDefault": true,
+    "width": 4,
+    "height": 4,
+    "className": "",
+    "interpolation": "linear",
+    "x": 1700,
+    "y": 560,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "7a1afc26f637cc04",
+    "type": "ui-event",
+    "z": "8ec71f3bbce1da92",
+    "ui": "1717c59cc0802c4f",
+    "name": "Page events",
+    "x": 240,
+    "y": 620,
+    "wires": [
+      [
+        "e47ce5391a256a9e"
+      ]
+    ]
+  },
+  {
+    "id": "e47ce5391a256a9e",
+    "type": "switch",
+    "z": "8ec71f3bbce1da92",
+    "name": "History page view/leave",
+    "property": "payload.page.path",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "/history",
+        "vt": "str"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 1,
+    "x": 470,
+    "y": 620,
+    "wires": [
+      [
+        "736755d1f33879a6"
+      ]
+    ]
+  },
+  {
+    "id": "736755d1f33879a6",
+    "type": "switch",
+    "z": "8ec71f3bbce1da92",
+    "name": "Start/Stop (pageview/pageleave)",
+    "property": "topic",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "$pageview",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "$pageleave",
+        "vt": "str"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 2,
+    "x": 720,
+    "y": 620,
+    "wires": [
+      [
+        "162f2dd61727f7c0"
+      ],
+      [
+        "48d55e3bd6621fcc"
+      ]
+    ]
+  },
+  {
+    "id": "162f2dd61727f7c0",
+    "type": "trigger",
+    "z": "8ec71f3bbce1da92",
+    "name": "Refresh history while open",
+    "op1": "tick",
+    "op2": "tick",
+    "op1type": "str",
+    "op2type": "str",
+    "duration": "60",
+    "extend": true,
+    "units": "s",
+    "reset": "",
+    "bytopic": "all",
+    "topic": "topic",
+    "outputs": 1,
+    "x": 980,
+    "y": 600,
+    "wires": [
+      [
+        "986b15c3ae491d75"
+      ]
+    ]
+  },
+  {
+    "id": "48d55e3bd6621fcc",
+    "type": "function",
+    "z": "8ec71f3bbce1da92",
+    "name": "Stop refresh",
+    "func": "msg.reset = true;\nreturn msg;",
+    "outputs": 1,
+    "x": 950,
+    "y": 660,
+    "wires": [
+      [
+        "162f2dd61727f7c0"
+      ]
+    ]
+  },
+  {
+    "id": "986b15c3ae491d75",
+    "type": "function",
+    "z": "8ec71f3bbce1da92",
+    "name": "Fan-out history requests (ch1-3)",
+    "func": "// запускается по 'tick' пока пользователь на странице История\nconst reqs = ['ch1','ch2','ch3'].map(ch => ({\n  ...msg,\n  payload: ch\n}));\nreturn [reqs];",
+    "outputs": 1,
+    "x": 1250,
+    "y": 600,
+    "wires": [
+      [
+        "87113a121893fd4c"
+      ]
+    ]
+  },
+  {
+    "id": "3591815bd0613599",
+    "type": "switch",
+    "z": "8ec71f3bbce1da92",
+    "name": "route to history charts",
+    "property": "topic",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "ch1",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "ch2",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "ch3",
+        "vt": "str"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 3,
+    "x": 1440,
+    "y": 520,
+    "wires": [
+      [
+        "fb667df55e4902ed"
+      ],
+      [
+        "a1a710e518549e8c"
+      ],
+      [
+        "7b864752b496baa3"
+      ]
+    ]
+  }
+]
