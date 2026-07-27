@@ -33,7 +33,9 @@
 - `npm audit` выполняется для repository lockfile и собранного image.
 - Транзитивный `lodash` закреплён безопасной версией через `overrides`.
 - `npm audit fix --force` запрещён без анализа breaking changes.
-- Оставшиеся upstream advisories Node-RED/Dashboard документируются в runtime-аудите и повторно проверяются перед production deployment.
+- Legacy `node-red-dashboard` и `node-red-contrib-influxdb` удалены из product image.
+- Repository lockfile audit после удаления legacy-зависимостей: `0` известных уязвимостей.
+- Токен InfluxDB читается из environment только при формировании HTTP-запроса и не хранится в flow credentials.
 
 ## Открытые требования
 

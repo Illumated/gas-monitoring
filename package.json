@@ -8,14 +8,13 @@
     "node": ">=24"
   },
   "scripts": {
-    "test": "node tests/validate-flow.mjs",
+    "generate:flow": "node scripts/generate-product-flow.mjs",
+    "test": "node tests/validate-flow.mjs && node tests/product-flow.test.mjs",
     "audit:flow": "node tests/audit-flow.mjs"
   },
   "dependencies": {
     "@flowfuse/node-red-dashboard": "1.30.2",
-    "node-red-contrib-influxdb": "0.7.0",
-    "node-red-contrib-modbus": "5.45.2",
-    "node-red-dashboard": "3.6.6"
+    "node-red-contrib-modbus": "5.45.2"
   },
   "overrides": {
     "lodash": "4.18.1"

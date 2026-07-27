@@ -10,7 +10,7 @@
 | Modbus timeout | TCP 502, gateway, A/B/GND, Unit ID, serial framing | Сеть или RS-485 |
 | Значение `32767` | Тип входа, токовая петля, scale registers | WB-MAI6 или датчик |
 | История пустая | Bucket, token, org, measurement и tags | InfluxDB configuration |
-| История обновилась один раз | Page event и trigger topology | Baseline flow |
+| История пустая при наличии текущих значений | Проверить `gas_pressure`, `_field=pressure_bar`, выбранный период | Query API или период |
 | Старая норма после обрыва | Error branch, stale timeout, state context | Flow logic |
 
 ## Основные команды

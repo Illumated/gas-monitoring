@@ -42,12 +42,30 @@ Invoke-WebRequest http://127.0.0.1:1880/
 Invoke-WebRequest http://127.0.0.1:8086/health
 ```
 
-Dashboard baseline:
+Dashboard:
 
 ```text
 http://127.0.0.1:1880/dashboard/monitoring
 http://127.0.0.1:1880/dashboard/history
 ```
+
+## Стендовый прогон без оборудования
+
+В отдельном PowerShell-сеансе:
+
+```powershell
+$env:SIMULATION_MODE = "true"
+docker compose --env-file .env -f docker/compose.yaml up -d --force-recreate node-red
+```
+
+После проверки вернуть штатный режим:
+
+```powershell
+Remove-Item Env:SIMULATION_MODE
+docker compose --env-file .env -f docker/compose.yaml up -d --force-recreate node-red
+```
+
+Симуляция не заменяет проверку USR-DR134, WB-MAI6 и токовых петель.
 
 ## Остановка
 

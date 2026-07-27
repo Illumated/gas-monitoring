@@ -6,13 +6,13 @@
 
 | Репозиторный путь | Исходный файл | Размер, байт | SHA-256 | Назначение |
 |---|---|---:|---|---|
-| `flows/flows.json` | `flows_big_titles.json` | 26 019 | `B51B3CD874E496FDDA802CEA91FA8719FAB04FF7DD1BE0D3C4079DB743C1EB57` | Доступный кандидат на последнюю версию Node-RED flow |
+| Git `3f068f8:flows/flows.json` | `flows_big_titles.json` | 26 019 | `B51B3CD874E496FDDA802CEA91FA8719FAB04FF7DD1BE0D3C4079DB743C1EB57` | Неизменяемая исходная версия в истории Git |
 | `docs/audit/AUDIT_MONITORS_REANIMATION_2026-07-27.md` | `AUDIT_MONITORS_REANIMATION_2026-07-27.md` | 51 236 | `FD173AEDC57B0DDEE78F28BFDD69C133AB9CC93E9CA6DA6E52BCB7463FA1CEFA` | Аудит ранее доступных материалов |
 | `docs/source/CODEX_HANDOFF_PROMPT.md` | `CODEX_HANDOFF_PROMPT.md` | 37 431 | `57B54A12F7E8FE3CE36FD7BAC8D2D2A5F2870D2A8F766356591CA7D87446CBB0` | Постановка задачи и границы проекта |
 
 ## Граница достоверности
 
 - Контрольные суммы подтверждают идентичность скопированных файлов.
-- `flows/flows.json` подтверждает только статическую конфигурацию экспорта.
+- Git-версия `3f068f8:flows/flows.json` подтверждает только статическую конфигурацию исходного экспорта.
 - Запуск Node-RED, работа dashboard, InfluxDB и связь с оборудованием этим набором источников не подтверждаются.
 - Изменения рабочего flow после первого коммита отслеживаются Git-историей.

@@ -25,9 +25,7 @@
 
 ```text
 @flowfuse/node-red-dashboard 1.30.2
-node-red-contrib-influxdb 0.7.0
 node-red-contrib-modbus 5.45.2
-node-red-dashboard 3.6.6
 ```
 
 ## Проверки
@@ -40,7 +38,9 @@ node-red-dashboard 3.6.6
 | InfluxDB healthcheck | PASS |
 | `/dashboard/monitoring` | HTTP 200 |
 | `/dashboard/history` | HTTP 200 |
-| Flow hash в `/data/flows.json` | Совпадает с `B51B…EB57` |
+| Исходный flow | Зафиксирован первым Git-коммитом, hash `B51B…EB57` |
+| Product flow startup | PASS, circular dependency отсутствует |
+| Product Modbus profile | TCP, Unit ID 65, Input Register 5380/9476/13572 |
 | InfluxDB initialization | org `rinir`, bucket `wb` |
 | Test point before restart | Найдена |
 | Test point after full container restart | Найдена |
@@ -48,10 +48,12 @@ node-red-dashboard 3.6.6
 | Backup трёх volumes без секретов | PASS |
 | Проверка SHA-256 архивов | PASS |
 | Restore в отдельные test volumes | PASS |
-| Hash восстановленного flow | Совпадает с `B51B…EB57` |
+| Product flow static contract | PASS, 25 объектов и 25 уникальных ID |
 | Node-RED 5.0.1 compatibility | Flow и оба dashboard modules загружаются |
 | Repository package audit | 0 vulnerabilities |
 | Built image audit | 49 warnings: 42 high, 5 moderate, 2 low, 0 critical |
+| Product dashboard routes | monitoring HTTP 200, history HTTP 200 |
+| Simulation write pipeline | По 8 точек O₂, AIR и N₂O за проверочный интервал |
 
 ## Подтверждённые runtime-дефекты baseline
 
@@ -70,12 +72,18 @@ Error: Circular config node dependency detected: modbus-client
 - dashboard routes создаются, но это не подтверждает работу измерительного pipeline;
 - physical Modbus и датчики в локальном тесте не проверялись.
 
+## Продуктовый прогон
+
+После замены flow Node-RED запускается без circular dependency, unknown nodes и syntax errors. Оба контейнера получают статус `healthy`. Стендовый режим сформировал значения всех трёх каналов, а read-only Flux-запрос подтвердил отдельные серии `oxygen`, `air` и `n2o`.
+
+Визуальная браузерная приёмка в текущем сеансе не выполнена: доступный автоматизированный browser backend отсутствовал. HTTP-маршруты и серверный runtime проверены; фактический вид на целевых разрешениях остаётся ручным acceptance gate.
+
 ## Dependency risk
 
-`node-red-contrib-influxdb@0.7.0` зависел от уязвимой ветки `lodash 4.17.x`. В product image применён точечный override `lodash 4.18.1`; repository package audit после этого показывает 0 vulnerabilities.
+Legacy `node-red-contrib-influxdb` и `node-red-dashboard` удалены из product image. Доступ к InfluxDB реализован штатными HTTP request nodes, токен поступает только из environment. Repository package audit показывает 0 vulnerabilities.
 
 Полный audit собранного Node-RED 5.0.1 image по-прежнему сообщает upstream warnings в зависимостях Node-RED и Dashboard: 49 total, 42 high, без critical. Автоматический `npm audit fix --force` не применяется, потому что он меняет совместимые версии без контроля и предлагает breaking downgrades. Риск ограничен loopback-публикацией, обязательной authentication, выключенным palette install и pinned image digest. Перед production deployment требуется повторный audit доступной версии и review оставшихся advisory.
 
 ## Граница результата
 
-Локальная контейнерная инфраструктура работоспособна и сохраняет данные. Исходный flow импортируется, но имеет config dependency defect и не считается рабочим измерительным flow.
+Локальная контейнерная инфраструктура и product flow работоспособны, сохраняют данные и проходят автоматические проверки. До ввода на объекте остаются аппаратная проверка Modbus/4–20 mA, утверждение клинических порогов и визуальная приёмка на целевом мониторе.
