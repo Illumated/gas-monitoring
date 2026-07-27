@@ -8,6 +8,15 @@ const registers = new Map([
     [9476, 52],
     [13572, 48]
 ]);
+const holdingRegisters = new Map();
+for (let channel = 1; channel <= 6; channel += 1) {
+    const base = 4096 * channel;
+    for (const sideOffset of [0, 1]) {
+        holdingRegisters.set(base + 1024 + sideOffset, 0);
+        holdingRegisters.set(base + 1032 + sideOffset, 0);
+        holdingRegisters.set(base + 1034 + sideOffset, 10000);
+    }
+}
 
 const scenarios = {
     normal: { 5380: 50, 9476: 52, 13572: 48 },
@@ -31,7 +40,16 @@ function apply(values) {
 
 const vector = {
     getInputRegister(address) {
-        return registers.get(address) ?? 0;
+        return registers.get(address) ?? 32767;
+    },
+    getHoldingRegister(address) {
+        return holdingRegisters.get(address) ?? 0;
+    },
+    setRegister(address, value) {
+        if (!holdingRegisters.has(address)) {
+            throw new Error(`unsupported holding register ${address}`);
+        }
+        holdingRegisters.set(address, value);
     }
 };
 

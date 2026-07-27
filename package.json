@@ -9,10 +9,11 @@
   },
   "scripts": {
     "generate:flow": "node scripts/generate-product-flow.mjs",
-    "test": "node tests/validate-flow.mjs && node tests/product-flow.test.mjs && node tests/runtime-render.test.mjs",
+    "test": "node tests/validate-flow.mjs && node tests/product-flow.test.mjs && node tests/runtime-render.test.mjs && node tests/wb-mai6-map.test.mjs && node tests/wb-mai6-cli.test.mjs",
     "audit:flow": "node tests/audit-flow.mjs"
   },
   "dependencies": {
+    "@openp4nr/modbus-serial": "https://dl.cloudsmith.io/public/iniationware-gmbh/plus4nodered/npm/openp4nr/modbus-serial/8.4.0/openp4nr-modbus-serial-8.4.0.tgz",
     "@flowfuse/node-red-dashboard": "1.30.2",
     "node-red-contrib-modbus": "5.45.2"
   },

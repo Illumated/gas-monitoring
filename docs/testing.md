@@ -44,6 +44,7 @@ docker compose --profile fat --env-file .env -f docker/compose.yaml -f docker/co
 ## Software FAT
 
 FAT-профиль использует отдельный Modbus TCP server с Unit ID `65` и Input Registers `5380`, `9476`, `13572`.
+Simulator также реализует конфигурационные holding-регистры всех 12 входов, поэтому на нём можно безопасно проверить `wb-mai6-commission.mjs` до работы с реальным модулем.
 
 | Сценарий | Raw | Ожидание |
 |---|---|---|

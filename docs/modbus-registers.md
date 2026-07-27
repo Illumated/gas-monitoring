@@ -13,11 +13,15 @@
 
 ## Каналы
 
-| Газ | Канал | Type holding u16 | Scale low i16 | Scale high i16 | Value input i16 |
+Полная карта `IN1P…IN6P` и `IN1N…IN6N`, включая четвёртый канал, приведена в [wb-mai6-commissioning.md](wb-mai6-commissioning.md). Продуктовый flow сейчас использует только:
+
+| Газ | Вход | Type holding u16 | Scale low i16 | Scale high i16 | Value input i16 |
 |---|---|---:|---:|---:|---:|
 | O₂ | IN1P | 5120 | 5128 | 5130 | 5380 |
 | AIR | IN2P | 9216 | 9224 | 9226 | 9476 |
 | N₂O | IN3P | 13312 | 13320 | 13322 | 13572 |
+
+`IN4P…IN6P` и все входы `N` не добавляются в dashboard без назначения газа, единиц измерения и порогов.
 
 При шкале `0…160` корректное пересчитанное значение преобразуется как `pressure_bar = raw / 10`.
 
