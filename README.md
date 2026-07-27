@@ -4,7 +4,7 @@
 
 ## Статус
 
-Репозиторий находится на этапе воспроизводимого восстановления прототипа. Текущий `flows/flows.json` является точной копией переданного экспорта от 27.07.2026. Его работоспособность в чистой среде и на физическом оборудовании пока не подтверждена.
+Репозиторий находится на этапе воспроизводимого восстановления прототипа. Исходное состояние `flows/flows.json` зафиксировано первым Git-коммитом. Локальная Docker-среда Node-RED + InfluxDB собрана и проверена; runtime-аудит подтвердил дефект `Circular config node dependency detected: modbus-client`.
 
 Система не считается готовой к клинической эксплуатации до утверждения порогов, проверки электрической части и датчиков, обследования места установки, выполнения требований информационной безопасности и подписания протокола приёмки.
 
@@ -18,6 +18,18 @@ JSON: array of 36 objects
 ```
 
 Происхождение входных материалов описано в `docs/source-register.md`.
+
+## Локальный запуск
+
+```powershell
+Copy-Item .env.example .env
+docker compose --env-file .env -f docker/compose.yaml config
+docker compose --env-file .env -f docker/compose.yaml build
+docker compose --env-file .env -f docker/compose.yaml up -d
+docker compose --env-file .env -f docker/compose.yaml ps
+```
+
+Фактические результаты первого запуска находятся в `docs/audit/RUNTIME_AUDIT_2026-07-27.md`.
 
 ## Целевая архитектура
 

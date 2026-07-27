@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env
+node_modules
+backups
+data
+volumes
+docs
+tests
+README.md
+CHANGELOG.md
+SHA256SUMS

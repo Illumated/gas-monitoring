@@ -1,0 +1,79 @@
+name: ${COMPOSE_PROJECT_NAME:-gas-monitoring}
+
+services:
+  influxdb:
+    image: influxdb:2.7.12@sha256:b8d940ca9376f85118260f5b6bd236b8a00b1749c3350c5578d4cde8e27f31f2
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Europe/Moscow}
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USERNAME:?set INFLUXDB_USERNAME in .env}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD:?set INFLUXDB_PASSWORD in .env}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:?set INFLUXDB_ORG in .env}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:?set INFLUXDB_BUCKET in .env}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:?set INFLUXDB_TOKEN in .env}
+    ports:
+      - "127.0.0.1:${INFLUXDB_PORT:-8086}:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping", "--host", "http://127.0.0.1:8086"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+  node-red:
+    build:
+      context: ..
+      dockerfile: docker/node-red/Dockerfile
+    image: gas-monitoring-node-red:0.1.0
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Europe/Moscow}
+      FLOWS: flows.json
+      NODE_RED_CREDENTIAL_SECRET: ${NODE_RED_CREDENTIAL_SECRET:?set NODE_RED_CREDENTIAL_SECRET in .env}
+      NODE_RED_ADMIN_USER: ${NODE_RED_ADMIN_USER:-admin}
+      NODE_RED_ADMIN_PASSWORD_HASH: ${NODE_RED_ADMIN_PASSWORD_HASH:-}
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_ORG: ${INFLUXDB_ORG:?set INFLUXDB_ORG in .env}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:?set INFLUXDB_BUCKET in .env}
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:?set INFLUXDB_TOKEN in .env}
+    ports:
+      - "127.0.0.1:${NODE_RED_PORT:-1880}:1880"
+    volumes:
+      - node-red-data:/data
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          const r=require('http').get('http://127.0.0.1:1880/',
+          x=>process.exit(x.statusCode<500?0:1));
+          r.on('error',()=>process.exit(1));
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  node-red-data:
+  influxdb-data:
+  influxdb-config:
