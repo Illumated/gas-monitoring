@@ -303,6 +303,10 @@ assert.match(byId.get("ui-history").format, /segments/, "history must render dat
 assert.match(byId.get("ui-monitor").format, /box-sizing:border-box/, "desktop HMI must include padding in its viewport height");
 assert.match(byId.get("ui-monitor").format, /grid-template-rows:auto minmax\(0,1fr\) auto/, "desktop HMI must distribute free height between header, cards and footer");
 assert.match(byId.get("ui-monitor").format, /\.nrdb-ui-group\.gm-group \.gm-widget/, "FlowFuse widget wrapper must be sized with the viewport");
+assert.match(byId.get("ui-monitor").format, /<h1>Контроль давления<\/h1>/, "HMI must use the approved short title");
+assert.match(byId.get("ui-monitor").format, /class="gm-clock"/, "clock must use a dedicated status-style panel");
+assert.match(byId.get("ui-monitor").format, />\.v-card>\.v-card-text\{height:100%!important;padding:0!important\}/, "FlowFuse group padding must not create an outer frame");
+assert.match(byId.get("ui-monitor").format, /html:has\(\.gm-page\),body:has\(\.gm-page\)\{overflow:hidden!important\}/, "desktop monitoring must not show an empty document scrollbar");
 
 const engineeringNode = byId.get("fn-engineering-manager");
 const engineeringFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", engineeringNode.func);
