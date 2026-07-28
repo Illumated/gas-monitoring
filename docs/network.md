@@ -4,12 +4,12 @@
 
 | Узел | Интерфейс | Адрес | Маршрутизация |
 |---|---|---|---|
-| ПК | LAN1 | DHCP или адрес основной сети | Единственный default route |
-| ПК | LAN2 | Предположительно `192.168.50.1/24` | Без gateway и DNS |
+| ПК | `rinir-mgmt` | DHCP основной сети | Единственный default route |
+| ПК | `rinir-modbus` | `192.168.50.1/24` | Без gateway и DNS |
 | USR-DR134 | Ethernet | `192.168.50.10/24` | Доступ только из Modbus-сегмента |
 | WB-MAI6 | RS-485 | Slave ID `65` | IP отсутствует |
 
-Параметры LAN2 и USR-DR134 должны быть подтверждены на реальном хосте.
+Имена привязываются к MAC-адресам в `firstboot.sh`. При автоматическом выборе первый физический Ethernet-интерфейс становится management, второй — Modbus; при отличающейся аппаратной разводке имена явно задаются в `factory.env`.
 
 ## Локальная Docker-среда
 
@@ -18,6 +18,7 @@
 - Контейнеры используют Compose network `backend`.
 - InfluxDB не публикуется на LAN.
 - Modbus TCP `502/tcp` не публикуется контейнером и будет использоваться Node-RED как исходящее соединение.
+- Удалённый dashboard публикуется только как `443/tcp` через nginx и `rinir-mgmt`.
 
 ## Проверки Debian-хоста
 
@@ -25,9 +26,11 @@
 ip -br link
 ip -br address
 ip route
-nmcli -f NAME,UUID,TYPE,DEVICE connection show
+networkctl status rinir-mgmt
+networkctl status rinir-modbus
+nft list ruleset
 ping -c 3 192.168.50.10
 nc -vz -w 3 192.168.50.10 502
 ```
 
-Критерий: LAN2 не получает default route, а `192.168.50.10:502` доступен после холодной перезагрузки.
+Критерий: `rinir-modbus` не получает default route, а `192.168.50.10:502` доступен после холодной перезагрузки. Полная автоматическая проверка: `deploy/debian/acceptance.sh`.

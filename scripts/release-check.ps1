@@ -88,7 +88,7 @@ try {
         }
         Invoke-ReleaseStep "debian-13-shell" {
             docker run --rm --volume "${repositoryRoot}:/repo:ro" debian:13-slim `
-                bash -c "set -e; grep -q '^VERSION_ID=.13' /etc/os-release; bash -n /repo/deploy/debian/*.sh /repo/scripts/*.sh"
+                bash -c "set -e; grep -q '^VERSION_ID=.13' /etc/os-release; bash -n /repo/deploy/debian/*.sh /repo/factory/*.sh /repo/scripts/*.sh"
         }
     }
 } finally {

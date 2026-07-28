@@ -68,7 +68,8 @@ InfluxDB
 - `docs/hardware-fat.md` — read-only inventory, точки 4/12/20 мА, обрыв и длительный прогон;
 - `docs/hardware-fat-protocol.md` — форма подписываемого аппаратного протокола;
 - `docs/configuration.md` — назначение и ограничения всех переменных `.env`;
-- `docs/debian-13.md` — production-развёртывание и kiosk;
+- `docs/factory-installation.md` — автономная установка с пустого amd64-устройства;
+- `docs/debian-13.md` — production runtime, systemd и kiosk;
 - `docs/max-notifications.md` — подключение MAX;
 - `docs/capacity.md` — расчёт диска на 365 суток;
 - `docs/release-verification.md` — единая проверка готовности выпуска;

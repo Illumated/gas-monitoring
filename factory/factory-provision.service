@@ -1,0 +1,15 @@
+[Unit]
+Description=RINIR one-time factory provisioning
+After=local-fs.target
+Before=display-manager.service
+ConditionPathExists=!/var/lib/rinir-factory/provision.done
+
+[Service]
+Type=oneshot
+ExecStart=/opt/rinir-factory/provision.sh
+StandardOutput=journal+console
+StandardError=journal+console
+TimeoutStartSec=1800
+
+[Install]
+WantedBy=multi-user.target

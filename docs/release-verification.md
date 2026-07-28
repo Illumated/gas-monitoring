@@ -17,7 +17,7 @@
 7. проверку base, FAT и production Compose;
 8. наличие собранного image;
 9. локальные CycloneDX SBOM, Alpine inventory и npm audit собранного image;
-10. syntax-check всех shell-скриптов в контейнере Debian 13.
+10. syntax-check application, Debian deployment и factory shell-скриптов в контейнере Debian 13.
 
 Результат сохраняется в `commissioning-evidence/release-check-<UTC>.json`. Каталог не входит в Git, так как содержит сведения конкретного прогона.
 
@@ -28,4 +28,5 @@
 - обрыв токовых петель;
 - длительный тест реального Modbus;
 - security и kiosk-проверку на целевом Debian 13;
+- загрузку собранного destructive ISO в чистой amd64 VM;
 - подписанный протокол приёмки.

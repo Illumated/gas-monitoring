@@ -1,100 +1,48 @@
-# Развёртывание на Debian 13
+# Runtime на Debian 13
 
-Целевая production-платформа — Debian 13 (Trixie). Windows 10 и Docker Desktop используются только для разработки и FAT.
+Целевая production-платформа — Debian 13 amd64. Windows 10 и Docker Desktop используются только для разработки и FAT.
 
-## До установки
+Полная установка с пустого накопителя описана в [factory-installation.md](factory-installation.md). Она является штатным способом подготовки серийного устройства. Этот документ фиксирует уже установленный runtime.
 
-Зафиксировать:
+## Сервисы
 
-- архитектуру CPU, RAM, накопитель и сетевые интерфейсы;
-- пользователя kiosk-сессии и выбранное desktop environment;
-- адреса management LAN и изолированного Modbus LAN;
-- установленную версию Debian и пакетов;
-- владельца обновлений, резервных копий и токенов.
+| Сервис | Назначение | Зависит от Salt |
+|---|---|---|
+| `gas-monitoring.service` | Запуск production Docker Compose | Нет |
+| `nginx.service` | Удалённый HTTPS endpoint с Basic Authentication | Нет |
+| `lightdm.service` | Минимальная Openbox/Chromium kiosk-сессия | Нет |
+| `nftables.service` | Доступ к `443/tcp` только через management LAN | Нет |
+| `salt-minion.service` | Последующие конфигурации и обновления | — |
 
-## Docker Engine
+Salt всегда установлен и включён, но не входит в dependency graph приложения. При отсутствии master мониторинг продолжает локальный запуск.
 
-Официальная инструкция Docker поддерживает Debian 13. Для production нельзя устанавливать неопределённый `latest`.
+## Пути
 
-```bash
-apt-cache madison docker-ce
-apt-cache madison containerd.io
-apt-cache madison docker-buildx-plugin
-apt-cache madison docker-compose-plugin
-export DOCKER_CE_VERSION='точная-версия-из-apt-cache'
-export CONTAINERD_VERSION='точная-версия-из-apt-cache'
-export DOCKER_BUILDX_VERSION='точная-версия-из-apt-cache'
-export DOCKER_COMPOSE_VERSION='точная-версия-из-apt-cache'
-sudo -E ./deploy/debian/install-docker-engine.sh
+```text
+/opt/gas-monitoring/                         файлы release
+/etc/gas-monitoring/gas-monitoring.env      product settings и secrets
+/etc/gas-monitoring/factory-credentials.txt первичные root-only реквизиты
+/etc/gas-monitoring/tls/                    certificate и private key
+/etc/rinir-factory.env                      параметры двух LAN и Salt
+/var/lib/rinir-factory/                     firstboot state и acceptance reports
 ```
 
-Выбранные версии заносятся в протокол развёртывания. Скрипт прекращает работу на системе, отличной от Debian 13.
+Hostname имеет строгий формат `RINIR-XXXXXX`. Приложение читает его из `/etc/hostname` без преобразований. Название больницы и расположение задаются после запуска в разделе «Сервис».
 
-## Установка приложения
-
-До запуска приложения общий `firstboot.sh` должен назначить компьютеру постоянный hostname. Этот репозиторий не формирует и не изменяет имя компьютера. Проверить готовое значение:
+## Локальная проверка
 
 ```bash
-hostnamectl --static
-```
-
-Ожидаемый формат: строго `RINIR-XXXXXX`, где `XXXXXX` — шесть заглавных латинских букв или цифр. Production Compose монтирует `/etc/hostname` в контейнер только для чтения; приложение не нормализует имя и прекращает запуск при другом формате. Windows hostname в production-идентификации не участвует.
-
-```bash
-sudo install -d -m 0755 /opt/gas-monitoring
-sudo install -d -m 0700 /etc/gas-monitoring
-sudo cp -a . /opt/gas-monitoring/
-sudo cp .env.example /etc/gas-monitoring/gas-monitoring.env
-sudo chmod 0600 /etc/gas-monitoring/gas-monitoring.env
-sudo cp deploy/debian/gas-monitoring.service /etc/systemd/system/
-```
-
-Заполнить `/etc/gas-monitoring/gas-monitoring.env`. Обязательны уникальные секреты, bcrypt hash редактора Node-RED и фактические параметры Modbus. Название больницы и расположение после запуска задаются в сервисном разделе.
-
-```bash
-cd /opt/gas-monitoring
+sudo systemctl status gas-monitoring.service nginx.service lightdm.service nftables.service salt-minion.service
 sudo docker compose \
   --env-file /etc/gas-monitoring/gas-monitoring.env \
-  -f docker/compose.yaml \
-  -f docker/compose.production.yaml \
-  config --quiet
-sudo docker compose \
-  --env-file /etc/gas-monitoring/gas-monitoring.env \
-  -f docker/compose.yaml \
-  -f docker/compose.production.yaml \
-  build
-sudo systemctl daemon-reload
-sudo systemctl enable --now gas-monitoring.service
-```
-
-До подключения оборудования выполнить локальную проверку пакета:
-
-```bash
-sudo /opt/gas-monitoring/deploy/debian/validate-package.sh
-```
-
-Она прекращает работу вне Debian 13, проверяет production Compose и unit через `systemd-analyze verify`. Runtime-проверка kiosk и двух сетевых интерфейсов выполняется уже на целевом компьютере.
-
-## Kiosk
-
-После установки и проверки Chromium скопировать desktop-файл в профиль отдельного непривилегированного kiosk-пользователя:
-
-```bash
-install -d -m 0755 ~/.config/autostart
-install -m 0644 /opt/gas-monitoring/deploy/debian/gas-monitoring-kiosk.desktop ~/.config/autostart/
-```
-
-Автовход и display manager зависят от выбранного desktop environment и настраиваются после обследования целевого компьютера. Kiosk-пользователь не включается в группу `docker` и не получает shell-доступ к `/etc/gas-monitoring/gas-monitoring.env`.
-
-## Проверка
-
-```bash
-sudo systemctl status gas-monitoring.service
-sudo docker compose --env-file /etc/gas-monitoring/gas-monitoring.env -f /opt/gas-monitoring/docker/compose.yaml -f /opt/gas-monitoring/docker/compose.production.yaml ps
-curl --fail http://127.0.0.1:1880/
+  -f /opt/gas-monitoring/docker/compose.yaml \
+  -f /opt/gas-monitoring/docker/compose.production.yaml \
+  ps
+curl --fail http://127.0.0.1:1880/dashboard/monitoring
 curl --fail http://127.0.0.1:8086/health
+sudo /opt/gas-monitoring/deploy/debian/acceptance.sh
 ```
 
-Затем открыть `http://127.0.0.1:1880/dashboard/engineering`, разблокировать сервисную сессию и сохранить название больницы, расположение и утверждённые пороги.
+Удалённый endpoint: `https://RINIR-XXXXXX/`. Доступ к Node-RED `1880` и InfluxDB `8086` через LAN запрещён.
 
-Официальный источник: [Install Docker Engine on Debian](https://docs.docker.com/engine/install/debian/).
+Ручной online-скрипт `deploy/debian/install-docker-engine.sh` сохранён для ремонтной установки. Он требует явно заданных точных версий и не заменяет заводской offline bundle.
