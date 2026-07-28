@@ -51,29 +51,34 @@ http://127.0.0.1:1880/dashboard/history
 
 ## Стендовый прогон без оборудования
 
-FAT-профиль запускает отдельный Modbus TCP simulator. Node-RED при этом продолжает использовать штатный последовательный `modbus-flex-sequencer`, без внутренней подстановки значений:
+FAT-профиль запускает отдельный Modbus TCP simulator. Node-RED при этом продолжает использовать штатный последовательный `modbus-flex-sequencer`, без внутренней подстановки значений.
+
+Из корня репозитория запустить весь стенд одной командой:
 
 ```powershell
-docker compose --profile fat --env-file .env `
-  -f docker/compose.yaml `
-  -f docker/compose.fat.yaml `
-  up -d --build
+.\scripts\simulation.ps1 start
 ```
 
-Сценарии:
+Переключать сценарии:
 
 ```powershell
-.\scripts\fat.ps1 -Scenario zero
-.\scripts\fat.ps1 -Scenario warning
-.\scripts\fat.ps1 -Scenario alarm
-.\scripts\fat.ps1 -Scenario nodata
-.\scripts\fat.ps1 -Scenario normal
+.\scripts\simulation.ps1 normal
+.\scripts\simulation.ps1 zero
+.\scripts\simulation.ps1 warning
+.\scripts\simulation.ps1 alarm
+.\scripts\simulation.ps1 nodata
 ```
 
-Текущее состояние без изменения регистров:
+Показать контейнеры и текущие значения:
 
 ```powershell
-.\scripts\fat.ps1 -Scenario status
+.\scripts\simulation.ps1 status
+```
+
+Остановить эмуляцию без удаления persistent volumes:
+
+```powershell
+.\scripts\simulation.ps1 stop
 ```
 
 Симуляция не заменяет проверку USR-DR134, WB-MAI6 и токовых петель.

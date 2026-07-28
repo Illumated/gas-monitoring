@@ -32,6 +32,18 @@ docker compose --env-file .env -f docker/compose.yaml ps
 
 Фактические результаты аудита и продуктового прогона находятся в `docs/audit/RUNTIME_AUDIT_2026-07-27.md`.
 
+## Эмуляция без оборудования
+
+Из корня репозитория:
+
+```powershell
+.\scripts\simulation.ps1 start
+.\scripts\simulation.ps1 alarm
+.\scripts\simulation.ps1 stop
+```
+
+Команда `start` собирает и запускает FAT-профиль, ждёт готовности сервисов и включает нормальный сценарий. Доступные сценарии: `normal`, `zero`, `warning`, `alarm`, `nodata`.
+
 ## Целевая архитектура
 
 ```text
