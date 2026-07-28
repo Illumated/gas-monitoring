@@ -55,8 +55,9 @@ check_service nftables.service
 
 curl --fail --output /dev/null http://127.0.0.1:1880/dashboard/monitoring
 curl --fail --output /dev/null http://127.0.0.1:8086/health
+curl --fail --output /dev/null http://127.0.0.1:18082/health
 [[ "$(curl --insecure --output /dev/null --write-out '%{http_code}' https://127.0.0.1/)" == "401" ]]
-pass "local dashboard, InfluxDB and authenticated HTTPS gateway"
+pass "local dashboard, InfluxDB, auth-service and authenticated HTTPS gateway"
 
 if ss -lnt | awk 'NR > 1 {print $4}' | grep -Eq '(^|[^0-9])0\.0\.0\.0:(1880|8086)$|^\[::\]:(1880|8086)$'; then
   echo "Node-RED or InfluxDB is exposed outside loopback" >&2

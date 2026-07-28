@@ -9,7 +9,7 @@
 | Сервис | Назначение | Зависит от Salt |
 |---|---|---|
 | `gas-monitoring.service` | Запуск production Docker Compose | Нет |
-| `nginx.service` | Удалённый HTTPS endpoint с Basic Authentication | Нет |
+| `nginx.service` | Удалённый HTTPS endpoint с auth-service | Нет |
 | `lightdm.service` | Минимальная Openbox/Chromium kiosk-сессия | Нет |
 | `nftables.service` | Доступ к `443/tcp` только через management LAN | Нет |
 | `salt-minion.service` | Последующие конфигурации и обновления | — |
@@ -25,6 +25,7 @@ Salt всегда установлен и включён, но не входит
 /etc/gas-monitoring/tls/                    certificate и private key
 /etc/rinir-factory.env                      параметры двух LAN и Salt
 /var/lib/rinir-factory/                     firstboot state и acceptance reports
+Docker volume auth-data                     scrypt-хэши удалённых пользователей
 ```
 
 Hostname имеет строгий формат `RINIR-XXXXXX`. Приложение читает его из `/etc/hostname` без преобразований. Название больницы и расположение задаются после запуска в разделе «Сервис».

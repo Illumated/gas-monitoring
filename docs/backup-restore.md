@@ -6,6 +6,7 @@
 - named volume `node-red-data`;
 - named volume `influxdb-data`;
 - named volume `influxdb-config`;
+- named volume `auth-data` с хэшами паролей удалённых пользователей;
 - локальный `.env`, сохранённый отдельно в защищённом хранилище.
 
 Секреты не включаются в Git-архив.

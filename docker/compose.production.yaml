@@ -9,7 +9,8 @@ services:
   node-red:
     environment:
       NODE_RED_ADMIN_PASSWORD_HASH: ${NODE_RED_ADMIN_PASSWORD_HASH:?set bcrypt hash in production env}
-      SERVICE_ACCESS_CODE: ${SERVICE_ACCESS_CODE:?set service access code in production env}
+      ADMIN_ACCESS_CODE: ${ADMIN_ACCESS_CODE:?set admin access code in production env}
+      AUTH_SERVICE_TOKEN: ${AUTH_SERVICE_TOKEN:?set auth service token in production env}
     logging:
       driver: json-file
       options:
@@ -19,3 +20,15 @@ services:
     volumes:
       - node-red-data:/data
       - /etc/hostname:/run/host-hostname:ro
+
+  auth-service:
+    environment:
+      AUTH_SERVICE_TOKEN: ${AUTH_SERVICE_TOKEN:?set auth service token in production env}
+      REMOTE_INITIAL_USER: ${REMOTE_INITIAL_USER:?set initial remote user in production env}
+      REMOTE_INITIAL_PASSWORD: ${REMOTE_INITIAL_PASSWORD:?set initial remote password in production env}
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    pids_limit: 128

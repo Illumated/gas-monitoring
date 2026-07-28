@@ -54,13 +54,15 @@ generate_application_config() {
   [[ ! -e "$APP_CONFIG_DIR/gas-monitoring.env" ]] ||
     return 0
 
-  local influx_password influx_token credential_secret service_code
-  local admin_password admin_hash
+  local influx_password influx_token credential_secret admin_code auth_service_token
+  local admin_password admin_hash remote_password
   influx_password="$(random_secret 36)"
   influx_token="$(random_secret 48)"
   credential_secret="$(random_secret 48)"
-  service_code="$(openssl rand -hex 4)"
+  admin_code="$(random_secret 12)"
+  auth_service_token="$(random_secret 48)"
   admin_password="$(random_secret 24)"
+  remote_password="$(random_secret 24)"
   admin_hash="$(htpasswd -bnBC 10 "" "$admin_password" | cut -d: -f2 | tr -d '\r\n')"
   admin_hash="${admin_hash/\$2y\$/\$2b\$}"
 
@@ -71,8 +73,13 @@ NODE_RED_PORT=1880
 NODE_RED_CREDENTIAL_SECRET=$credential_secret
 NODE_RED_ADMIN_USER=admin
 NODE_RED_ADMIN_PASSWORD_HASH=$admin_hash
-SERVICE_ACCESS_CODE=$service_code
+SERVICE_ACCESS_CODE=
+ADMIN_ACCESS_CODE=$admin_code
 SERVICE_UNLOCK_MINUTES=15
+AUTH_SERVICE_TOKEN=$auth_service_token
+AUTH_SERVICE_PORT=18082
+REMOTE_INITIAL_USER=${REMOTE_USER,,}
+REMOTE_INITIAL_PASSWORD=$remote_password
 MODBUS_HOST=${MODBUS_DEVICE_ADDRESS:-192.168.50.10}
 MODBUS_PORT=502
 MODBUS_UNIT_ID=65
@@ -110,27 +117,21 @@ EOF
   chmod 0600 "$APP_CONFIG_DIR/gas-monitoring.env"
 
   cat >"$CREDENTIALS_FILE" <<EOF
-Service access code: $service_code
+Admin access code: $admin_code
 Node-RED editor user: admin
 Node-RED editor password: $admin_password
+Remote URL: https://$(hostnamectl --static)/
+Remote user: ${REMOTE_USER,,}
+Remote password: $remote_password
 EOF
   chmod 0600 "$CREDENTIALS_FILE"
 }
 
 generate_remote_access() {
-  local hostname_value remote_password
+  local hostname_value
   hostname_value="$(hostnamectl --static)"
   [[ "$hostname_value" =~ ^RINIR-[A-Z0-9]{6}$ ]] ||
     die "hostname must match RINIR-XXXXXX"
-
-  if [[ ! -s "$APP_CONFIG_DIR/remote.htpasswd" ]]; then
-    remote_password="$(random_secret 24)"
-    htpasswd -bcB "$APP_CONFIG_DIR/remote.htpasswd" "$REMOTE_USER" "$remote_password"
-    printf 'Remote URL: https://%s/\nRemote user: %s\nRemote password: %s\n' \
-      "$hostname_value" "$REMOTE_USER" "$remote_password" >>"$CREDENTIALS_FILE"
-  fi
-  chmod 0640 "$APP_CONFIG_DIR/remote.htpasswd"
-  chown root:www-data "$APP_CONFIG_DIR/remote.htpasswd"
 
   if [[ ! -s "$APP_CONFIG_DIR/tls/device.key" ]]; then
     openssl req -x509 -newkey rsa:3072 -nodes -days 825 \

@@ -8,7 +8,7 @@ image="gas-monitoring-node-red:0.1.0"
 
 mkdir -p "$target"
 
-for name in node-red-data influxdb-data influxdb-config; do
+for name in node-red-data influxdb-data influxdb-config auth-data; do
   volume="${project}_${name}"
   docker volume inspect "$volume" >/dev/null
   exclude=""

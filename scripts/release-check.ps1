@@ -66,15 +66,27 @@ try {
 
     $previousAdminHash = $env:NODE_RED_ADMIN_PASSWORD_HASH
     $previousServiceCode = $env:SERVICE_ACCESS_CODE
+    $previousAdminCode = $env:ADMIN_ACCESS_CODE
+    $previousAuthServiceToken = $env:AUTH_SERVICE_TOKEN
+    $previousRemoteUser = $env:REMOTE_INITIAL_USER
+    $previousRemotePassword = $env:REMOTE_INITIAL_PASSWORD
     try {
         $env:NODE_RED_ADMIN_PASSWORD_HASH = '$2b$12$releasecheckonly000000000000000000000000000000000000000'
         $env:SERVICE_ACCESS_CODE = "release-check-only"
+        $env:ADMIN_ACCESS_CODE = "release-admin-check-only"
+        $env:AUTH_SERVICE_TOKEN = "release-auth-service-token-check-only"
+        $env:REMOTE_INITIAL_USER = "operator"
+        $env:REMOTE_INITIAL_PASSWORD = "release-remote-password-check-only"
         Invoke-ReleaseStep "compose-base" { docker compose --env-file .env -f docker/compose.yaml config --quiet }
         Invoke-ReleaseStep "compose-fat" { docker compose --profile fat --env-file .env -f docker/compose.yaml -f docker/compose.fat.yaml config --quiet }
         Invoke-ReleaseStep "compose-production" { docker compose --env-file .env -f docker/compose.yaml -f docker/compose.production.yaml config --quiet }
     } finally {
         $env:NODE_RED_ADMIN_PASSWORD_HASH = $previousAdminHash
         $env:SERVICE_ACCESS_CODE = $previousServiceCode
+        $env:ADMIN_ACCESS_CODE = $previousAdminCode
+        $env:AUTH_SERVICE_TOKEN = $previousAuthServiceToken
+        $env:REMOTE_INITIAL_USER = $previousRemoteUser
+        $env:REMOTE_INITIAL_PASSWORD = $previousRemotePassword
     }
 
     if (-not $SkipDocker) {

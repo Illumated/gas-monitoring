@@ -56,7 +56,8 @@ assert.doesNotMatch(appService, /salt-minion/, "application startup must not dep
 assert.match(installer, /openssl req -x509/);
 assert.match(installer, /factory-credentials\.txt/);
 assert.match(installer, /autologin-user=rinir-kiosk/);
-assert.match(nginx, /auth_basic_user_file/);
+assert.match(nginx, /auth_request \/__auth/);
+assert.match(nginx, /127\.0\.0\.1:18082\/verify/);
 assert.match(nginx, /proxy_pass http:\/\/127\.0\.0\.1:1880/);
 assert.match(firewall, /iifname "rinir-mgmt" tcp dport 443 accept/);
 assert.doesNotMatch(firewall, /rinir-modbus" tcp dport 443 accept/);

@@ -8,7 +8,7 @@
 http://127.0.0.1:1880/dashboard/monitoring
 ```
 
-Внутренние Node-RED и InfluxDB остаются привязаны к loopback. С другого компьютера в management LAN dashboard доступен через `https://RINIR-XXXXXX/` с отдельной HTTP Basic Authentication. На устройстве нет полноценного desktop environment: LightDM запускает сессию Openbox, а она — только Chromium kiosk.
+Внутренние Node-RED и InfluxDB остаются привязаны к loopback. С другого компьютера в management LAN dashboard доступен через `https://RINIR-XXXXXX/` с серверной проверкой логина и пароля. Пользователи управляются в сервисном UI, а пароли хранятся как `scrypt`-хэши. На устройстве нет полноценного desktop environment: LightDM запускает сессию Openbox, а она — только Chromium kiosk.
 
 > Заводской ISO без подтверждения удаляет разметку и данные на первом обнаруженном внутреннем non-removable диске. Съёмный USB-носитель исключается по признаку `/sys/block/*/removable`.
 
@@ -94,7 +94,7 @@ chmod 0600 /secure/factory-RINIR.env
 3. `firstboot.sh` строит имя `RINIR-XXXXXX` из последних шести символов DMI UUID, а при его отсутствии — `machine-id`.
 4. Management LAN получает DHCP и единственный default route; Modbus LAN получает статический адрес без gateway, DNS, RA и link-local.
 5. Salt minion устанавливается и включается всегда. Недоступность master не влияет на `gas-monitoring.service`.
-6. Генерируются уникальные secrets, bcrypt-пароли и самоподписанный TLS certificate. Root-only реквизиты записываются в `/etc/gas-monitoring/factory-credentials.txt`.
+6. Генерируются уникальные secrets, администраторский код, bcrypt-пароль Node-RED, начальный удалённый пользователь и самоподписанный TLS certificate. Root-only реквизиты записываются в `/etc/gas-monitoring/factory-credentials.txt`.
 7. После второй перезагрузки запускаются Docker Compose, nginx, firewall, LightDM и Chromium kiosk.
 
 Самоподписанный certificate не требует корпоративного CA. Удалённый браузер покажет предупреждение, пока certificate конкретного устройства не добавлен в доверенные. Salt позднее может заменить certificate, не меняя приложение.

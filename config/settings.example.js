@@ -15,6 +15,9 @@ const settings = {
             module: "localfilesystem"
         }
     },
+    functionGlobalContext: {
+        crypto: require("node:crypto")
+    },
     diagnostics: {
         enabled: true,
         ui: false

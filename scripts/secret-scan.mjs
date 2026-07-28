@@ -28,7 +28,7 @@ for (const file of tracked) {
         if (content.includes(secret.value)) findings.push(`${file}: contains local value of ${secret.name}`);
     }
     for (const [index, line] of content.split(/\r?\n/).entries()) {
-        const match = line.match(/^\s*(MAX_BOT_TOKEN|INFLUXDB_TOKEN|INFLUXDB_PASSWORD|NODE_RED_CREDENTIAL_SECRET|SERVICE_ACCESS_CODE)\s*[:=]\s*["']?([^"'#\s]+)["']?\s*$/);
+        const match = line.match(/^\s*(MAX_BOT_TOKEN|INFLUXDB_TOKEN|INFLUXDB_PASSWORD|NODE_RED_CREDENTIAL_SECRET|SERVICE_ACCESS_CODE|ADMIN_ACCESS_CODE|AUTH_SERVICE_TOKEN|REMOTE_INITIAL_PASSWORD)\s*[:=]\s*["']?([^"'#\s]+)["']?\s*$/);
         if (!match) continue;
         const value = match[2];
         if (value.length >= 12 && !ignoredValues.test(value)) {

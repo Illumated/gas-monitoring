@@ -20,7 +20,7 @@ fi
   sha256sum --check SHA256SUMS
 )
 
-for name in node-red-data influxdb-data influxdb-config; do
+for name in node-red-data influxdb-data influxdb-config auth-data; do
   volume="${project}_${name}"
   if docker volume inspect "$volume" >/dev/null 2>&1; then
     echo "Target volume already exists: $volume" >&2
@@ -28,7 +28,7 @@ for name in node-red-data influxdb-data influxdb-config; do
   fi
 done
 
-for name in node-red-data influxdb-data influxdb-config; do
+for name in node-red-data influxdb-data influxdb-config auth-data; do
   volume="${project}_${name}"
   docker volume create "$volume" >/dev/null
   docker run --rm \

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 const nodes = JSON.parse(await readFile(new URL("../flows/flows.json", import.meta.url), "utf8"));
@@ -221,7 +222,7 @@ for (let index = 0; index < 10; index += 1) {
 }
 assert.equal(scheduledTimers, 0, "successful samples must not create per-reading stale timers");
 
-assert.equal(nodes.filter((node) => node.type === "http request").length, 4);
+assert.equal(nodes.filter((node) => node.type === "http request").length, 5);
 assert.ok(byId.has("fn-max-request"), "MAX notification request builder must exist");
 assert.ok(byId.has("http-max-send"), "MAX HTTP sender must exist");
 assert.equal(byId.has("fn-simulator"), false, "product flow must not bypass Modbus with an internal simulator");
@@ -316,6 +317,7 @@ assert.match(byId.get("ui-monitor").format, /@media\(prefers-reduced-motion:redu
 
 const engineeringNode = byId.get("fn-engineering-manager");
 const engineeringFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", engineeringNode.func);
+globalThis.global.get = (name) => name === "crypto" ? crypto : undefined;
 const engineeringStore = {};
 const engineeringContext = {
     get(key) { return engineeringStore[key]; },
@@ -324,18 +326,43 @@ const engineeringContext = {
 const engineeringEnv = {
     get(name) {
         return {
-            SERVICE_ACCESS_CODE: "test-code",
+            ADMIN_ACCESS_CODE: "admin-test-code",
+            NODE_RED_CREDENTIAL_SECRET: "test-credential-secret",
+            AUTH_SERVICE_TOKEN: "test-auth-service-token",
+            AUTH_SERVICE_URL: "http://auth-service:8082",
             SERVICE_UNLOCK_MINUTES: "15",
             GAS_STALE_TIMEOUT_MS: "4000",
             MONITOR_ID: "RINIR-A1B2C3"
         }[name] ?? "";
     }
 };
+const emptyRegistryResult = engineeringFn(
+    { _client: { socketId: "client-1" }, payload: { action: "engineering-unlock", code: "operator-test-code" } },
+    nodeMock, engineeringContext, engineeringEnv
+);
+assert.equal(emptyRegistryResult[0].payload.unlocked, false);
+assert.match(emptyRegistryResult[0].payload.message, /зарегистрировать исполнителя/);
+const adminUnlockResult = engineeringFn(
+    { _client: { socketId: "client-admin" }, payload: { action: "engineering-admin-unlock", code: "admin-test-code" } },
+    nodeMock, engineeringContext, engineeringEnv
+);
+assert.equal(adminUnlockResult[0].payload.admin, true);
+assert.equal(adminUnlockResult[0].payload.session.name, "Администратор");
+assert.deepEqual(adminUnlockResult[0]._client, { socketId: "client-admin" }, "engineering responses must stay scoped to the requesting dashboard client");
+const addOperatorResult = engineeringFn(
+    { _client: { socketId: "client-admin" }, payload: { action: "engineering-operator-add", name: "Гимранов", code: "23WEsdxc" } },
+    nodeMock, engineeringContext, engineeringEnv
+);
+assert.equal(addOperatorResult[0].payload.success, true);
+assert.equal(addOperatorResult[0].payload.operators[0].name, "Гимранов");
+assert.equal(flowStore.serviceOperators[0].name, "Гимранов");
+assert.notEqual(flowStore.serviceOperators[0].codeHash, "23WEsdxc", "operator code must not be stored in plaintext");
 const unlockResult = engineeringFn(
-    { _client: { socketId: "client-1" }, payload: { action: "engineering-unlock", code: "test-code" } },
+    { _client: { socketId: "client-1" }, payload: { action: "engineering-unlock", code: "23WEsdxc" } },
     nodeMock, engineeringContext, engineeringEnv
 );
 assert.equal(unlockResult[0].payload.unlocked, true);
+assert.equal(unlockResult[0].payload.session.name, "Гимранов");
 const candidateSettings = {
     siteName: "Городская больница",
     locationName: "Реанимация, 2 этаж",
@@ -348,7 +375,7 @@ const candidateSettings = {
     hysteresis: 0.1
 };
 const saveResult = engineeringFn(
-    { _client: { socketId: "client-1" }, payload: { action: "engineering-save", operator: "TEST", settings: candidateSettings } },
+    { _client: { socketId: "client-1" }, payload: { action: "engineering-save", operator: "Подменённое имя", settings: candidateSettings } },
     nodeMock, engineeringContext, engineeringEnv
 );
 assert.equal(saveResult[0].payload.success, true);
@@ -358,7 +385,10 @@ assert.equal(saveResult[0].payload.identity.locationName, "Реанимация,
 assert.equal(flowStore.runtimeSettings.siteName, "Городская больница");
 assert.equal(flowStore.runtimeSettings.locationName, "Реанимация, 2 этаж");
 assert.equal(flowStore.runtimeSettings.gases[0].okLow, 4.1);
+assert.equal(flowStore.runtimeSettings.operator, "Гимранов", "operator must come from the authenticated code session");
+assert.equal(saveResult[0].payload.saved, true);
 assert.equal(saveResult[1].payload.kind, "settings-change");
+assert.equal(saveResult[1].payload.operator, "Гимранов");
 const recreatedEngineeringFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", engineeringNode.func);
 const afterRestartLoad = recreatedEngineeringFn(
     { _client: { socketId: "client-2" }, payload: { action: "engineering-load" } },
@@ -368,7 +398,7 @@ assert.equal(afterRestartLoad[0].payload.settings.gases[0].okLow, 4.1, "runtime 
 const rejectedSettings = structuredClone(candidateSettings);
 rejectedSettings.gases[0].warnHigh = 9;
 const rejectedResult = engineeringFn(
-    { _client: { socketId: "client-1" }, payload: { action: "engineering-save", operator: "TEST", settings: rejectedSettings } },
+    { _client: { socketId: "client-1" }, payload: { action: "engineering-save", settings: rejectedSettings } },
     nodeMock, engineeringContext, engineeringEnv
 );
 assert.equal(rejectedResult[0].payload.success, false);
@@ -376,11 +406,29 @@ assert.equal(flowStore.runtimeSettings.gases[0].warnHigh, 6.5, "invalid settings
 const missingLocation = structuredClone(candidateSettings);
 missingLocation.locationName = "";
 const missingLocationResult = engineeringFn(
-    { _client: { socketId: "client-1" }, payload: { action: "engineering-save", operator: "TEST", settings: missingLocation } },
+    { _client: { socketId: "client-1" }, payload: { action: "engineering-save", settings: missingLocation } },
     nodeMock, engineeringContext, engineeringEnv
 );
 assert.equal(missingLocationResult[0].payload.success, false);
 assert.equal(flowStore.runtimeSettings.locationName, "Реанимация, 2 этаж", "empty location must not partially persist");
+const usersRequest = engineeringFn(
+    { _client: { socketId: "client-admin" }, payload: { action: "engineering-user-add", username: "doctor", password: "strong-password" } },
+    nodeMock, engineeringContext, engineeringEnv
+);
+assert.equal(usersRequest[2].method, "POST");
+assert.equal(usersRequest[2].url, "http://auth-service:8082/users");
+assert.equal(usersRequest[2].headers["X-Auth-Admin-Token"], "test-auth-service-token");
+assert.deepEqual(usersRequest[2].payload, { username: "doctor", password: "strong-password" });
+const authUsersResponseNode = byId.get("fn-auth-users-response");
+const authUsersResponseFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", authUsersResponseNode.func);
+const authUsersUiResult = authUsersResponseFn(
+    { _client: { socketId: "client-admin" }, statusCode: 201, authUiAction: "engineering-user-add", authTarget: "doctor", payload: { users: [{ username: "doctor" }] } },
+    nodeMock, contextMock, engineeringEnv
+);
+assert.deepEqual(authUsersUiResult[0]._client, { socketId: "client-admin" });
+assert.equal(authUsersUiResult[1].payload.operator, "Администратор");
+assert.match(byId.get("ui-engineering").format, /!this\.dirty\|\|p\.saved/, "background refresh must not overwrite a dirty settings form");
+assert.doesNotMatch(byId.get("ui-engineering").format, /v-model="operator"/, "operator identity must not be editable");
 
 const eventNode = byId.get("fn-event-write");
 const eventFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", eventNode.func);

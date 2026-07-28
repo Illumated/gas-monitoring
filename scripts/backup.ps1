@@ -30,6 +30,7 @@ $volumeMap = [ordered]@{
     "node-red-data" = "$ProjectName`_node-red-data"
     "influxdb-data" = "$ProjectName`_influxdb-data"
     "influxdb-config" = "$ProjectName`_influxdb-config"
+    "auth-data" = "$ProjectName`_auth-data"
 }
 
 foreach ($entry in $volumeMap.GetEnumerator()) {

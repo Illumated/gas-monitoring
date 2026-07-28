@@ -64,7 +64,10 @@ services:
       NODE_RED_ADMIN_USER: ${NODE_RED_ADMIN_USER:-admin}
       NODE_RED_ADMIN_PASSWORD_HASH: ${NODE_RED_ADMIN_PASSWORD_HASH:-}
       SERVICE_ACCESS_CODE: ${SERVICE_ACCESS_CODE:-}
+      ADMIN_ACCESS_CODE: ${ADMIN_ACCESS_CODE:-}
       SERVICE_UNLOCK_MINUTES: ${SERVICE_UNLOCK_MINUTES:-15}
+      AUTH_SERVICE_URL: http://auth-service:8082
+      AUTH_SERVICE_TOKEN: ${AUTH_SERVICE_TOKEN:-development-auth-service-token-change-me}
       MODBUS_HOST: ${MODBUS_HOST:-192.168.50.10}
       MODBUS_PORT: ${MODBUS_PORT:-502}
       MODBUS_UNIT_ID: ${MODBUS_UNIT_ID:-65}
@@ -102,6 +105,8 @@ services:
     depends_on:
       influx-retention:
         condition: service_completed_successfully
+      auth-service:
+        condition: service_healthy
     healthcheck:
       test:
         - CMD
@@ -115,6 +120,38 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+  auth-service:
+    image: gas-monitoring-node-red:0.1.0
+    restart: unless-stopped
+    entrypoint:
+      - node
+      - /opt/gas-monitoring/auth-service.cjs
+    environment:
+      AUTH_SERVICE_TOKEN: ${AUTH_SERVICE_TOKEN:-development-auth-service-token-change-me}
+      REMOTE_INITIAL_USER: ${REMOTE_INITIAL_USER:-operator}
+      REMOTE_INITIAL_PASSWORD: ${REMOTE_INITIAL_PASSWORD:-development-remote-password}
+    ports:
+      - "127.0.0.1:${AUTH_SERVICE_PORT:-18082}:8082"
+    volumes:
+      - auth-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          const r=require('http').get('http://127.0.0.1:8082/health',
+          x=>process.exit(x.statusCode===200?0:1));
+          r.on('error',()=>process.exit(1));
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
     security_opt:
       - no-new-privileges:true
     networks:
@@ -188,3 +225,4 @@ volumes:
   node-red-data:
   influxdb-data:
   influxdb-config:
+  auth-data:

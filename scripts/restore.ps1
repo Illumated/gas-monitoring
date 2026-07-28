@@ -33,7 +33,7 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
 
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 $image = "gas-monitoring-node-red:0.1.0"
-$archives = @("node-red-data", "influxdb-data", "influxdb-config")
+$archives = @("node-red-data", "influxdb-data", "influxdb-config", "auth-data")
 
 foreach ($name in $archives) {
     $archivePath = Join-Path $backupPath "$name.tar.gz"
