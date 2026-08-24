@@ -42,7 +42,7 @@ docker compose --env-file .env -f docker/compose.yaml ps
 .\scripts\simulation.ps1 stop
 ```
 
-Команда `start` собирает и запускает FAT-профиль, ждёт готовности сервисов и включает нормальный сценарий. Доступные сценарии: `normal`, `zero`, `warning`, `alarm`, `nodata`.
+Команда `start` собирает и запускает FAT-профиль, ждёт готовности сервисов и включает нормальный сценарий. Доступные сценарии: `normal`, `zero`, `warning`, `oxygenalarm` (авария только O₂), `alarm`, `nodata`.
 
 ## Целевая архитектура
 

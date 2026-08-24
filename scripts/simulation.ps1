@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("start", "status", "normal", "zero", "warning", "alarm", "nodata", "stop")]
+    [ValidateSet("start", "status", "normal", "zero", "warning", "oxygenalarm", "alarm", "nodata", "stop")]
     [string]$Action = "start",
     [string]$DockerPath
 )

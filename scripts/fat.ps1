@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet("status", "normal", "zero", "warning", "alarm", "nodata")]
+    [ValidateSet("status", "normal", "zero", "warning", "oxygenalarm", "alarm", "nodata")]
     [string]$Scenario = "status"
 )
 

@@ -69,6 +69,7 @@ Simulator также реализует конфигурационные holding
 | `normal` | 50 / 52 / 48 | 5.0 / 5.2 / 4.8 bar, `ok` |
 | `zero` | 0 / 0 / 0 | 0.0 bar, `alarm`, запись в историю |
 | `warning` | 38 / 62 / 39 | 3.8 / 6.2 / 3.9 bar, `warn`, включая переход из `alarm` с гистерезисом |
+| `oxygenalarm` | 20 / 52 / 48 | только O₂: 2.0 bar, `alarm`; AIR и N₂O остаются в `ok` |
 | `alarm` | 20 / 80 / 70 | 2.0 / 8.0 / 7.0 bar, `alarm` |
 | `nodata` | 32767 | `nodata`, значение не пишется в InfluxDB |
 
