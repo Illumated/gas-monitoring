@@ -25,6 +25,7 @@ readonly NORMALIZED_FACTORY_CONFIG=/work/factory.env
   exit 1
 }
 
+install -d -m 0700 /work
 git config --global --add safe.directory "$REPO_DIR"
 [[ -z "$(git -C "$REPO_DIR" status --porcelain)" ]] || {
   echo "Refusing to build from a dirty Git worktree" >&2

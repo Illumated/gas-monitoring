@@ -107,6 +107,7 @@ assert.match(windowsBuilder, /New-Item -ItemType Directory -Path \$nodeModulesMo
 assert.match(isoBuilder, /xorriso/);
 assert.match(isoBuilder, /docker:29\.6\.2-cli@sha256:/);
 assert.match(windowsContainer, /tr -d '\\r'/);
+assert.match(windowsContainer, /install -d -m 0700 \/work[\s\S]*tr -d '\\r'/);
 assert.match(windowsContainer, /replace-with-/);
 assert.match(windowsContainer, /ADMIN_ACCESS_CODE must contain at least 10 characters/);
 assert.match(windowsContainer, /may contain only A-Z/);
