@@ -29,6 +29,9 @@ command -v git >/dev/null
 command -v sha256sum >/dev/null
 
 npm --prefix "$REPO_DIR" test
+npm --prefix "$REPO_DIR" run audit:flow
+npm --prefix "$REPO_DIR" run audit:secrets
+npm --prefix "$REPO_DIR" audit --omit=dev --audit-level=critical
 docker build \
   --file "$REPO_DIR/docker/node-red/Dockerfile" \
   --tag gas-monitoring-node-red:0.1.0 \
@@ -51,14 +54,14 @@ docker save gas-monitoring-node-red:0.1.0 \
 docker save influxdb:2.7.12 \
   --output "$OUTPUT_DIR/images/influxdb-2.7.12.tar"
 
-docker run --rm \
-  --mount "type=bind,src=$OUTPUT_DIR/packages,dst=/packages" \
+package_container="$(docker create \
   -e DOCKER_CE_VERSION \
   -e CONTAINERD_VERSION \
   -e DOCKER_BUILDX_VERSION \
   -e DOCKER_COMPOSE_VERSION \
   -e SALT_VERSION \
   "$FACTORY_BUILDER_IMAGE" bash -euxc '
+    install -d -m 0755 /packages
     apt-get update
     apt-get install -y ca-certificates curl
     install -d -m 0755 /etc/apt/keyrings
@@ -85,7 +88,18 @@ docker run --rm \
       "salt-minion=$SALT_VERSION"
     rm -f /packages/lock
     rm -rf /packages/partial
-  '
+  ')"
+cleanup_package_container() {
+  if [[ -n "${package_container:-}" ]]; then
+    docker rm --force "$package_container" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup_package_container EXIT
+docker start --attach "$package_container"
+docker cp "$package_container:/packages/." "$OUTPUT_DIR/packages"
+docker rm "$package_container" >/dev/null
+package_container=""
+trap - EXIT
 
 manifest_tmp="$(mktemp)"
 (

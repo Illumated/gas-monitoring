@@ -15,7 +15,10 @@ const [
     factoryExample,
     docs,
     bundle,
-    image
+    image,
+    windowsBuilder,
+    isoBuilder,
+    windowsContainer
 ] = await Promise.all([
     read("../factory/versions.env"),
     read("../factory/preseed.cfg"),
@@ -29,7 +32,10 @@ const [
     read("../deploy/debian/factory.env.example"),
     read("../docs/02-factory-installation.md"),
     read("../factory/build-bundle.sh"),
-    read("../docker/node-red/Dockerfile")
+    read("../docker/node-red/Dockerfile"),
+    read("../factory/build-windows.ps1"),
+    read("../factory/Dockerfile.windows-builder"),
+    read("../factory/build-windows-container.sh")
 ]);
 
 for (const expected of [
@@ -90,5 +96,16 @@ assert.doesNotMatch(bundle, /compose\.production\.yaml[\s\S]*build node-red/);
 assert.match(image, /tools\/wb-mai6-commission\.mjs/);
 assert.match(image, /tools\/hardware-fat\.mjs/);
 assert.match(installer, /gas-monitoring-acceptance\.service/);
+assert.match(windowsBuilder, /Get-FileHash -Algorithm SHA256/);
+assert.match(windowsBuilder, /Docker Desktop must use Linux amd64 containers/);
+assert.match(windowsBuilder, /BUILD-INFO\.txt|Factory ISO created and verified/);
+assert.match(windowsBuilder, /Output directory must be outside the repository/);
+assert.match(isoBuilder, /xorriso/);
+assert.match(isoBuilder, /docker:29\.6\.2-cli@sha256:/);
+assert.match(windowsContainer, /tr -d '\\r'/);
+assert.match(windowsContainer, /replace-with-/);
+assert.match(windowsContainer, /ADMIN_ACCESS_CODE must contain at least 10 characters/);
+assert.match(windowsContainer, /may contain only A-Z/);
+assert.match(windowsBuilder, /Factory build evidence was not created/);
 
 console.log("Factory installation, network, Salt independence and kiosk contracts passed");

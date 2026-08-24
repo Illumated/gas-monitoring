@@ -15,7 +15,7 @@
 
 | Задача | Документ |
 |---|---|
-| Пустое целевое устройство Debian 13 amd64 | [02 — Заводская установка](docs/02-factory-installation.md) |
+| Пустое целевое устройство Debian 13 amd64; образ собирается на Windows | [02 — Заводская установка](docs/02-factory-installation.md) |
 | Разработка или симуляция на Windows | [24 — Среда разработки](docs/24-development.md) |
 | Уже установленное устройство | [09 — Проверка выпуска](docs/09-release-verification.md), затем [10 — Эксплуатация](docs/10-operations.md) |
 | Настройка реального оборудования | [04 — Подключение](docs/04-wiring.md) → [05 — USR‑DR134](docs/05-usr-dr134-commissioning.md) → [06 — WB‑MAI6](docs/06-wb-mai6-commissioning.md) → [08 — аппаратный FAT](docs/08-hardware-fat.md) |

@@ -19,6 +19,9 @@ http://127.0.0.1:1880/dashboard/monitoring
 | `factory/versions.env` | Зафиксированные версии Debian, Docker Engine, Compose, containerd, Buildx и Salt |
 | `factory/build-bundle.sh` | Собирает проверенный offline bundle: приложение, `.deb`, Docker images, manifest |
 | `factory/build-iso.sh` | Встраивает preseed и bundle в официальный Debian DVD-1 ISO |
+| `factory/build-windows.ps1` | Единая точка запуска factory build на Windows |
+| `factory/Dockerfile.windows-builder` | Закреплённая Linux-среда сборки внутри Docker Desktop |
+| `factory/build-windows-container.sh` | Собирает bundle и ISO внутри factory builder |
 | `factory/preseed.cfg` | Полностью автоматическая установка Debian и очистка внутреннего диска |
 | `factory/provision.sh` | Однократная настройка при первом запуске |
 | `deploy/debian/firstboot.sh` | Hostname, два LAN и Salt minion ID |
@@ -28,13 +31,24 @@ http://127.0.0.1:1880/dashboard/monitoring
 
 Используется DVD-1, а не netinst: netinst требует сетевого зеркала, тогда как базовая ОС и kiosk должны установиться автономно. Preseed помещается в initrd, поэтому Debian Installer читает его до интерактивных вопросов.
 
+## Требования к Windows-сборочной машине
+
+- Windows 10/11 x64;
+- не менее `40 GB` свободного места на NTFS-диске;
+- Docker Desktop, запущенный в режиме Linux containers;
+- доступ к Debian, Docker Hub, Docker repository и Salt repository;
+- репозиторий на локальном диске Windows, а не на сетевой SMB-папке.
+
+Отдельная Debian-машина, Node.js, npm, `xorriso` и установленный вручную WSL distribution не требуются. Все Linux-инструменты выполняются внутри зафиксированных Docker-контейнеров.
+
 ## Параметры устройства
 
-Скопировать `deploy/debian/factory.env.example` вне репозитория:
+Скопировать `deploy/debian/factory.env.example` в защищённый каталог вне репозитория:
 
-```bash
-cp deploy/debian/factory.env.example /secure/factory-RINIR.env
-chmod 0600 /secure/factory-RINIR.env
+```powershell
+New-Item -ItemType Directory -Path C:\RINIR-secure -Force
+Copy-Item .\deploy\debian\factory.env.example C:\RINIR-secure\factory-RINIR.env
+notepad.exe C:\RINIR-secure\factory-RINIR.env
 ```
 
 Переменные:
@@ -57,9 +71,85 @@ chmod 0600 /secure/factory-RINIR.env
 
 При пустых именах интерфейсов установка требует ровно два физических Ethernet-адаптера. Выбранное соответствие MAC/роли записывается в `/var/lib/rinir-factory/firstboot.env`. При другом количестве интерфейсов provisioning останавливается, не назначая сеть по догадке.
 
-## Сборка offline bundle
+Для трёх реквизитов допускаются только `A–Z`, `a–z`, `0–9` и символы `._@+-`. Пробелы, кавычки, `#`, `$` и обратная косая черта запрещены: `factory.env` является shell-конфигурацией.
 
-Сборочная машина: Debian 13 amd64/x86_64 с Git, Node.js, npm и Docker Engine, с доступом к Debian, Docker, Salt и container registries.
+## Штатная сборка RINIR ISO на Windows
+
+### 1. Скачать и проверить исходный Debian ISO
+
+С [официального каталога Debian amd64 DVD](https://cdimage.debian.org/debian-cd/current/amd64/iso-dvd/) скачать в один каталог:
+
+```text
+debian-13.6.0-amd64-DVD-1.iso
+SHA256SUMS
+SHA256SUMS.sign
+```
+
+Подпись `SHA256SUMS.sign` должна быть проверена ключом Debian CD согласно [официальной процедуре Debian](https://www.debian.org/CD/verify). Только после успешной OpenPGP-проверки извлечь SHA‑256 нужного ISO:
+
+```powershell
+$debianIsoName = 'debian-13.6.0-amd64-DVD-1.iso'
+$line = Select-String -LiteralPath C:\RINIR-source\SHA256SUMS `
+    -Pattern ([regex]::Escape($debianIsoName) + '$') |
+    Select-Object -ExpandProperty Line
+
+if (-not $line) {
+    throw "В SHA256SUMS отсутствует $debianIsoName"
+}
+
+$debianSha256 = ($line -split '\s+')[0]
+$actual = (Get-FileHash -Algorithm SHA256 `
+    -LiteralPath "C:\RINIR-source\$debianIsoName").Hash
+
+if ($actual -ne $debianSha256.ToUpperInvariant()) {
+    throw 'Исходный Debian ISO не прошёл проверку SHA-256'
+}
+```
+
+Не брать checksum из сообщения, переписки или стороннего сайта.
+
+### 2. Запустить единую сборку
+
+PowerShell необходимо открыть в корне чистого репозитория. Каталог результата должен находиться вне репозитория и быть пустым:
+
+```powershell
+.\factory\build-windows.ps1 `
+    -FactoryConfig C:\RINIR-secure\factory-RINIR.env `
+    -SourceIso C:\RINIR-source\debian-13.6.0-amd64-DVD-1.iso `
+    -SourceSha256 $debianSha256 `
+    -OutputDirectory C:\RINIR-build\RINIR-13.6.0
+```
+
+Скрипт автоматически:
+
+1. проверяет SHA‑256 исходного Debian ISO и требует Docker Desktop `linux/amd64`;
+2. собирает закреплённый factory builder и требует чистый Git worktree;
+3. внутри builder выполняет `npm ci`, contract tests, flow audit, secret scan и dependency audit;
+4. собирает product image и получает pinned InfluxDB image;
+5. экспортирует в bundle только состояние `HEAD`;
+6. скачивает pinned Docker, containerd, Compose, Buildx и Salt packages;
+7. формирует и проверяет `SHA256SUMS` offline bundle;
+8. восстанавливает boot metadata исходного Debian ISO и создаёт RINIR ISO;
+9. повторно проверяет итоговый ISO и записывает `BUILD-INFO.txt` с Git commit.
+
+Успешный результат:
+
+```text
+C:\RINIR-build\RINIR-13.6.0\RINIR-13.6.0-amd64.iso
+C:\RINIR-build\RINIR-13.6.0\RINIR-13.6.0-amd64.iso.sha256
+C:\RINIR-build\RINIR-13.6.0\BUILD-INFO.txt
+Factory ISO created and verified
+```
+
+Сборка считается завершённой только после сообщения `Factory ISO created and verified`. Итоговый `.sha256` должен совпасть с повторным `Get-FileHash`; `BUILD-INFO.txt` должен содержать ожидаемый Git commit.
+
+## Справочно: низкоуровневые Linux-команды
+
+Оператор на Windows этот раздел не выполняет. Команды остаются для диагностики внутренней работы Windows-оркестратора и CI; штатная сборка устройства выполняется только предыдущим PowerShell-скриптом.
+
+Сборочная среда: Debian 13 amd64/x86_64 с Git, Node.js, npm и Docker Engine.
+
+### Сборка offline bundle
 
 ```bash
 ./factory/build-bundle.sh \
@@ -67,9 +157,9 @@ chmod 0600 /secure/factory-RINIR.env
   /secure/factory-RINIR.env
 ```
 
-Скрипт:
+`build-bundle.sh`:
 
-1. требует чистый Git worktree и выполняет `npm test`;
+1. требует чистый Git worktree, выполняет `npm test`, flow audit, secret scan и dependency audit;
 2. собирает product image и получает pinned InfluxDB image;
 3. экспортирует только состояние `HEAD`;
 4. загружает pinned Docker `29.6.2`, containerd `2.2.6`, Buildx `0.35.0`, Compose `5.3.1` и Salt LTS `3008.2` вместе с зависимостями;
@@ -77,7 +167,7 @@ chmod 0600 /secure/factory-RINIR.env
 
 Секретный `factory.env` включается в конкретный заводской образ, но не попадает в Git. Три значения `replace-with-*` необходимо заменить до сборки: installer откажется продолжать с шаблонными или слишком короткими реквизитами. Это обеспечивает известный инженеру доступ после автономной установки, на которой интерактивные Linux-аккаунты отключены.
 
-## Сборка ISO
+### Сборка ISO
 
 Скачать официальный `debian-13.6.0-amd64-DVD-1.iso`, отдельно получить его SHA-256 из подписанного Debian `SHA256SUMS` и выполнить:
 
@@ -90,6 +180,89 @@ chmod 0600 /secure/factory-RINIR.env
 ```
 
 Рядом создаётся `RINIR-13.6.0-amd64.iso.sha256`. Перед записью на USB проверяются оба checksum: исходного Debian ISO и итогового RINIR ISO.
+
+## Подготовка загрузочной флешки на Windows
+
+Флешка подготавливается на том же Windows 10/11 после Docker-сборки автономного ISO. Исходный официальный `debian-13.6.0-amd64-DVD-1.iso` на стенд не устанавливает продукт. На USB необходимо записать именно дважды проверенный `RINIR-13.6.0-amd64.iso`.
+
+### Требования
+
+- USB-флешка объёмом не менее `16 GB` без нужных данных;
+- Windows-учётная запись с правами администратора;
+- `RINIR-13.6.0-amd64.iso` и соседний `RINIR-13.6.0-amd64.iso.sha256`;
+- [balenaEtcher с официального сайта](https://etcher.balena.io/) — основной инструмент; Debian рекомендует его для записи образов из Windows, после записи выполняется validation.
+
+Не использовать `unetbootin`, не распаковывать ISO на флешку и не копировать на неё файл `.iso` через Проводник. Для загрузки требуется запись образа на устройство целиком.
+
+### 1. Проверить ISO
+
+Открыть PowerShell в каталоге с обоими файлами:
+
+```powershell
+$isoPath = (Resolve-Path '.\RINIR-13.6.0-amd64.iso').Path
+$checksumPath = "$isoPath.sha256"
+$expected = ((Get-Content -LiteralPath $checksumPath -Raw) -split '\s+')[0].ToUpperInvariant()
+$actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $isoPath).Hash.ToUpperInvariant()
+
+if ($actual -ne $expected) {
+    throw "SHA-256 не совпадает. Ожидался $expected, получен $actual"
+}
+
+"SHA-256 подтверждён: $actual"
+```
+
+Продолжать можно только после сообщения `SHA-256 подтверждён`. При несовпадении удалить ISO и повторить Windows-сборку из проверенного исходного Debian DVD.
+
+### 2. Однозначно определить флешку
+
+Подключить только одну USB-флешку и выполнить:
+
+```powershell
+Get-Disk |
+    Sort-Object Number |
+    Format-Table Number, FriendlyName, BusType,
+        @{Name='SizeGB'; Expression={[math]::Round($_.Size / 1GB, 1)}},
+        PartitionStyle
+```
+
+Сверить `FriendlyName`, `BusType=USB` и объём. Записать номер диска и модель в журнал работ.
+
+**СТОП:** если целевую флешку нельзя однозначно отличить от внутренних дисков, запись не начинать.
+
+### 3. Записать образ
+
+1. Запустить balenaEtcher.
+2. Нажать `Flash from file` и выбрать `RINIR-13.6.0-amd64.iso`.
+3. Нажать `Select target`, выбрать флешку и сверить модель и объём с `Get-Disk`.
+4. Нажать `Flash`, ещё раз проверить выбранное устройство и подтвердить полное удаление данных.
+5. Дождаться окончания записи и проверки без ошибок.
+6. Если Windows предлагает форматировать один из разделов — нажать `Отмена`. Форматирование уничтожит установочный носитель.
+7. Закрыть balenaEtcher и выполнить безопасное извлечение флешки через область уведомлений Windows.
+
+В качестве компактной альтернативы разрешён [USBImager](https://bztsrc.gitlab.io/usbimager/): использовать стандартную Windows-версию, выбрать образ и устройство, включить `Verify`, затем нажать `Write`. Для Rufus требуется именно `DD Image mode`; `ISO Image mode` применять нельзя.
+
+### 4. Зафиксировать результат
+
+В комплект объекта сохранить:
+
+- имя ISO и подтверждённый SHA‑256;
+- дату записи, модель и объём USB;
+- название и версию программы записи;
+- снимок успешного окончания записи/validation;
+- Git commit, из которого собран ISO.
+
+После записи файловая система флешки может отображаться в Windows не полностью. Это не является ошибкой, если поблочная запись и validation завершились успешно. Если раздел доступен в Проводнике, в корне должны находиться каталоги Debian и каталог `factory`; самого файла `RINIR-*.iso` в корне быть не должно.
+
+### 5. Первая загрузка стенда
+
+1. Полностью выключить целевой ПК.
+2. Отсоединить все внутренние накопители, данные на которых нельзя уничтожить, и лишние USB-накопители.
+3. Подключить management LAN с работающим DHCP. Modbus LAN на время установки оставить отключённым.
+4. Подключить RINIR USB, открыть Boot Menu прошивки и выбрать запись вида `UEFI: <модель флешки>`.
+5. В меню Debian выбрать `Install`. Не выбирать `Graphical install`, rescue или live-режим.
+6. После запуска Debian Installer больше не подтверждать разметку: preseed автоматически выберет первый внутренний non-removable диск и удалит его содержимое.
+
+Если USB отсутствует в UEFI Boot Menu, сначала проверить запись на другом порту USB, отключить Fast Boot и проверить разрешение загрузки с USB. Secure Boot отключать только если прошивка явно отклоняет загрузчик; это отклонение необходимо зафиксировать в журнале работ.
 
 ## Поведение устройства
 
@@ -125,6 +298,8 @@ sudo /opt/gas-monitoring/deploy/debian/acceptance.sh
 ## Официальные источники версий
 
 - [Debian 13.6 point release](https://www.debian.org/News/2026/20260711)
+- [Debian FAQ: запись установочного образа на USB из Windows](https://www.debian.org/CD/faq/#write-usb)
+- [Debian Installer: USB-носитель из hybrid ISO](https://d-i.debian.org/doc/installation-guide/en.amd64/ch04s03.html)
 - [Docker packages for Debian 13 (trixie), amd64](https://download.docker.com/linux/debian/dists/trixie/pool/stable/amd64/)
 - [Salt Project downloads and current LTS](https://docs.saltproject.io/salt/install-guide/en/latest/topics/downloads.html)
 - [Salt installation on Debian](https://docs.saltproject.io/salt/install-guide/en/latest/topics/install-by-operating-system/linux-deb.html)

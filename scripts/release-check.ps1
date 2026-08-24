@@ -59,6 +59,18 @@ try {
     Invoke-ReleaseStep "secret-scan" { node scripts/secret-scan.mjs }
     Invoke-ReleaseStep "storage-capacity" { node scripts/storage-capacity.mjs }
     Invoke-ReleaseStep "git-diff-check" { git -c "safe.directory=$repositoryRoot" diff --check }
+    Invoke-ReleaseStep "powershell-syntax" {
+        $powerShellFiles = Get-ChildItem -Path scripts, factory -Filter *.ps1 -File
+        foreach ($file in $powerShellFiles) {
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+                $file.FullName, [ref]$null, [ref]$parseErrors
+            ) | Out-Null
+            if ($parseErrors.Count) {
+                throw "PowerShell syntax error in $($file.FullName): $($parseErrors[0].Message)"
+            }
+        }
+    }
 
     if (-not $SkipDependencyAudit) {
         Invoke-ReleaseStep "dependency-audit-critical" { npm audit --omit=dev --audit-level=critical }
@@ -90,6 +102,18 @@ try {
     }
 
     if (-not $SkipDocker) {
+        Invoke-ReleaseStep "factory-windows-builder" {
+            docker build --platform linux/amd64 `
+                --file factory/Dockerfile.windows-builder `
+                --tag gas-monitoring-factory-builder:0.1.0 .
+            if ($LASTEXITCODE -ne 0) {
+                throw "Windows factory builder image failed"
+            }
+            docker run --rm --platform linux/amd64 `
+                --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" `
+                --entrypoint docker gas-monitoring-factory-builder:0.1.0 `
+                version --format '{{.Client.Version}} -> {{.Server.Version}}'
+        }
         Invoke-ReleaseStep "image-present" { docker image inspect gas-monitoring-node-red:0.1.0 | Out-Null }
         Invoke-ReleaseStep "image-sbom-and-audit" {
             if ($SkipDependencyAudit) {

@@ -51,6 +51,12 @@ load_factory_config() {
     die "set a unique NODE_RED_ADMIN_PASSWORD with at least 12 characters"
   [[ "$REMOTE_INITIAL_PASSWORD" != replace-with-* && ${#REMOTE_INITIAL_PASSWORD} -ge 10 ]] ||
     die "set a unique REMOTE_INITIAL_PASSWORD with at least 10 characters"
+  [[ "$ADMIN_ACCESS_CODE" =~ ^[A-Za-z0-9._@+-]+$ ]] ||
+    die "ADMIN_ACCESS_CODE contains unsupported characters"
+  [[ "$NODE_RED_ADMIN_PASSWORD" =~ ^[A-Za-z0-9._@+-]+$ ]] ||
+    die "NODE_RED_ADMIN_PASSWORD contains unsupported characters"
+  [[ "$REMOTE_INITIAL_PASSWORD" =~ ^[A-Za-z0-9._@+-]+$ ]] ||
+    die "REMOTE_INITIAL_PASSWORD contains unsupported characters"
 }
 
 install_application_files() {
