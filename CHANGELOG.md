@@ -51,3 +51,4 @@
 - Добавлен persistent auth-service для удалённого HTTPS-доступа; пользователи управляются из сервисного UI, пароли сохраняются как `scrypt`-хэши.
 - Исправлен запуск Windows factory builder из чистого Git clone без каталога `node_modules`; для GitHub ZIP добавлена ранняя понятная диагностика.
 - Исправлено создание рабочего каталога `/work` перед нормализацией заводской конфигурации в Windows factory builder.
+- Добавлен zero-touch Debian Installer: автоматический UEFI/Legacy BIOS boot через 10 секунд, critical preseed без вопросов и защита готовой RINIR-системы от повторной очистки.

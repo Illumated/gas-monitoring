@@ -22,7 +22,10 @@ http://127.0.0.1:1880/dashboard/monitoring
 | `factory/build-windows.ps1` | Единая точка запуска factory build на Windows |
 | `factory/Dockerfile.windows-builder` | Закреплённая Linux-среда сборки внутри Docker Desktop |
 | `factory/build-windows-container.sh` | Собирает bundle и ISO внутри factory builder |
+| `factory/boot/grub.cfg` | Zero-touch UEFI boot, таймер и загрузка уже установленной RINIR-системы |
+| `factory/boot/isolinux.cfg` | Zero-touch Legacy BIOS boot |
 | `factory/preseed.cfg` | Полностью автоматическая установка Debian и очистка внутреннего диска |
+| `factory/select-install-disk.sh` | Защита готовой установки и выбор внутреннего несъёмного диска |
 | `factory/provision.sh` | Однократная настройка при первом запуске |
 | `deploy/debian/firstboot.sh` | Hostname, два LAN и Salt minion ID |
 | `deploy/debian/install-system.sh` | Секреты, systemd, kiosk, nginx и firewall |
@@ -239,22 +242,27 @@ Get-Disk |
 
 1. Полностью выключить целевой ПК.
 2. Отсоединить все внутренние накопители, данные на которых нельзя уничтожить, и лишние USB-накопители.
-3. Подключить management LAN с работающим DHCP. Modbus LAN на время установки оставить отключённым.
-4. Подключить RINIR USB, открыть Boot Menu прошивки и выбрать запись вида `UEFI: <модель флешки>`.
-5. В меню Debian выбрать `Install`. Не выбирать `Graphical install`, rescue или live-режим.
-6. После запуска Debian Installer больше не подтверждать разметку: preseed автоматически выберет первый внутренний non-removable диск и удалит его содержимое.
+3. Подключить management LAN. Modbus LAN на время установки оставить отключённым.
+4. Подключить RINIR USB и включить ПК. Если USB не является первым загрузочным устройством, один раз открыть Boot Menu прошивки и выбрать запись вида `UEFI: <модель флешки>`.
+5. Не нажимать клавиши: через 10 секунд автоматически запускается текстовый Debian Installer с `auto=true priority=critical`.
+6. Installer не запрашивает язык, раскладку, пользователя, hostname, сеть, разметку или устройство GRUB. Первый внутренний non-removable диск будет полностью очищен.
+
+Для заводского режима «подключить флешку и включить питание» необходимо заранее установить USB первым в UEFI Boot Order. В конце установки создаётся `/var/lib/rinir-factory/install.done`; уже при первой перезагрузке UEFI-конфигурация флешки находит его и передаёт управление внутреннему `/boot/grub/grub.cfg`. Перед разметкой installer независимо ищет тот же маркер на всех доступных разделах. При его обнаружении очистка запрещается.
+
+Полностью автономный цикл с оставленной флешкой поддерживается в режиме UEFI. В Legacy BIOS автоматическая первоначальная установка также работает, но носитель нужно выбрать через одноразовый Boot Menu либо извлечь перед первой перезагрузкой: ISOLINUX не умеет безопасно искать маркер на установленной ext4-системе и передавать ей управление. Если флешка останется первой в Legacy Boot Order, повторный installer обнаружит `install.done` и выключит устройство без очистки диска.
 
 Если USB отсутствует в UEFI Boot Menu, сначала проверить запись на другом порту USB, отключить Fast Boot и проверить разрешение загрузки с USB. Secure Boot отключать только если прошивка явно отклоняет загрузчик; это отклонение необходимо зафиксировать в журнале работ.
 
 ## Поведение устройства
 
-1. Debian Installer находит первый internal non-removable disk и полностью переразмечает его.
-2. После первого старта `factory-provision.service` проверяет manifest, ставит offline `.deb`, загружает Docker images и закрепляет пакеты через `apt-mark hold`.
-3. `firstboot.sh` строит имя `RINIR-XXXXXX` из последних шести символов DMI UUID, а при его отсутствии — `machine-id`.
-4. Management LAN получает DHCP и единственный default route; Modbus LAN получает статический адрес без gateway, DNS, RA и link-local.
-5. Salt minion устанавливается и включается всегда. Недоступность master не влияет на `gas-monitoring.service`.
-6. Внутренние secrets генерируются автоматически; администраторский код, пароль Node‑RED и начальный удалённый пароль берутся из объектового `factory.env`. Самоподписанный TLS certificate создаётся на устройстве. Root-only копия реквизитов записывается в `/etc/gas-monitoring/factory-credentials.txt`.
-7. После второй перезагрузки запускаются Docker Compose, nginx, firewall, LightDM и Chromium kiosk.
+1. Загрузчик ждёт 10 секунд, проверяет наличие готовой RINIR-системы и только для нового устройства автоматически запускает Debian Installer.
+2. Debian Installer без сетевой конфигурации находит первый internal non-removable disk и полностью переразмечает его.
+3. После первого старта `factory-provision.service` проверяет manifest, ставит offline `.deb`, загружает Docker images и закрепляет пакеты через `apt-mark hold`.
+4. `firstboot.sh` строит имя `RINIR-XXXXXX` из последних шести символов DMI UUID, а при его отсутствии — `machine-id`.
+5. Management LAN получает DHCP и единственный default route; Modbus LAN получает статический адрес без gateway, DNS, RA и link-local.
+6. Salt minion устанавливается и включается всегда. Недоступность master не влияет на `gas-monitoring.service`.
+7. Внутренние secrets генерируются автоматически; администраторский код, пароль Node‑RED и начальный удалённый пароль берутся из объектового `factory.env`. Самоподписанный TLS certificate создаётся на устройстве. Root-only копия реквизитов записывается в `/etc/gas-monitoring/factory-credentials.txt`.
+8. После второй перезагрузки запускаются Docker Compose, nginx, firewall, LightDM и Chromium kiosk.
 
 Самоподписанный certificate не требует корпоративного CA. Удалённый браузер покажет предупреждение, пока certificate конкретного устройства не добавлен в доверенные. Salt позднее может заменить certificate, не меняя приложение.
 

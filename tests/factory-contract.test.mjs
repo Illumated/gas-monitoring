@@ -19,7 +19,10 @@ const [
     windowsBuilder,
     isoBuildScript,
     isoBuilder,
-    windowsContainer
+    windowsContainer,
+    grubBoot,
+    isolinuxBoot,
+    diskSelector
 ] = await Promise.all([
     read("../factory/versions.env"),
     read("../factory/preseed.cfg"),
@@ -37,7 +40,10 @@ const [
     read("../factory/build-windows.ps1"),
     read("../factory/build-iso.sh"),
     read("../factory/Dockerfile.windows-builder"),
-    read("../factory/build-windows-container.sh")
+    read("../factory/build-windows-container.sh"),
+    read("../factory/boot/grub.cfg"),
+    read("../factory/boot/isolinux.cfg"),
+    read("../factory/select-install-disk.sh")
 ]);
 
 for (const expected of [
@@ -51,9 +57,32 @@ for (const expected of [
 }
 
 assert.match(preseed, /partman\/early_command/);
-assert.match(preseed, /\/sys\/block\/\$block\/removable/);
+assert.match(preseed, /auto-install\/enable boolean true/);
+assert.match(preseed, /debconf\/priority select critical/);
+assert.match(preseed, /netcfg\/enable boolean false/);
+assert.match(preseed, /\/bin\/rinir-select-install-disk/);
 assert.match(preseed, /partman\/confirm_nooverwrite boolean true/);
 assert.match(preseed, /passwd\/root-login boolean false/);
+assert.match(preseed, /passwd\/make-user boolean false/);
+assert.match(preseed, /grub-installer\/bootdev string default/);
+assert.match(preseed, /touch \/target\/var\/lib\/rinir-factory\/install\.done/);
+assert.ok(
+    preseed.indexOf("install.done") > preseed.lastIndexOf("factory-provision.service"),
+    "install.done must be created only after the first-boot service is installed"
+);
+assert.match(diskSelector, /install\.done/);
+assert.match(diskSelector, /refusing to erase the internal disk/);
+assert.match(diskSelector, /\/sys\/block\/\$block\/removable/);
+assert.match(grubBoot, /set timeout=10/);
+assert.match(grubBoot, /search --no-floppy --file[\s\S]*install\.done/);
+assert.match(grubBoot, /configfile \/boot\/grub\/grub\.cfg/);
+assert.match(grubBoot, /auto=true priority=critical/);
+assert.match(isolinuxBoot, /default rinir-auto/);
+assert.match(isolinuxBoot, /timeout 100/);
+assert.match(isolinuxBoot, /auto=true priority=critical/);
+assert.match(isoBuildScript, /factory\/boot\/grub\.cfg[\s\S]*\/boot\/grub\/grub\.cfg/);
+assert.match(isoBuildScript, /factory\/boot\/isolinux\.cfg[\s\S]*\/isolinux\/isolinux\.cfg/);
+assert.match(isoBuildScript, /cmp .*grub-result\.cfg/);
 assert.match(provisioning, /sha256sum --check SHA256SUMS/);
 assert.match(provisioning, /apt-mark hold[\s\S]*salt-common salt-minion/);
 assert.match(provisioning, /docker load --input/);

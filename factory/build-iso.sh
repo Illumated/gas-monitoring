@@ -38,6 +38,8 @@ xorriso -osirrox on -indev "$SOURCE_ISO" \
   cd "$work_dir/initrd"
   gzip -dc "$work_dir/initrd-original.gz" | cpio -id --quiet
   install -m 0644 "$REPO_DIR/factory/preseed.cfg" preseed.cfg
+  install -m 0755 "$REPO_DIR/factory/select-install-disk.sh" \
+    bin/rinir-select-install-disk
   find . -print0 |
     cpio --null --create --format=newc --quiet |
     gzip -9 >"$work_dir/initrd-rinir.gz"
@@ -49,8 +51,15 @@ xorriso \
   -outdev "$OUTPUT_ISO" \
   -boot_image any replay \
   -map "$work_dir/initrd-rinir.gz" /install.amd/initrd.gz \
+  -map "$REPO_DIR/factory/boot/grub.cfg" /boot/grub/grub.cfg \
+  -map "$REPO_DIR/factory/boot/isolinux.cfg" /isolinux/isolinux.cfg \
   -map "$BUNDLE_DIR" /factory \
   -commit
 
+xorriso -osirrox on -indev "$OUTPUT_ISO" \
+  -extract /boot/grub/grub.cfg "$work_dir/grub-result.cfg" \
+  -extract /isolinux/isolinux.cfg "$work_dir/isolinux-result.cfg"
+cmp "$REPO_DIR/factory/boot/grub.cfg" "$work_dir/grub-result.cfg"
+cmp "$REPO_DIR/factory/boot/isolinux.cfg" "$work_dir/isolinux-result.cfg"
 sha256sum "$OUTPUT_ISO" >"$OUTPUT_ISO.sha256"
 echo "Autonomous installer ISO created: $OUTPUT_ISO"
