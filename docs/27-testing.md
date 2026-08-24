@@ -1,4 +1,4 @@
-# Стратегия тестирования
+# 27. Стратегия тестирования
 
 ## Уровни
 
@@ -34,7 +34,7 @@ docker compose --env-file .env -f docker/compose.yaml config
 
 Физические тесты не заменяются симуляцией.
 
-Аппаратный FAT, параметры команд и evidence описаны в `docs/hardware-fat.md`; подписываемая форма находится в `docs/hardware-fat-protocol.md`.
+Аппаратный FAT, параметры команд и evidence описаны в [08 — Аппаратный FAT](08-hardware-fat.md); подписываемая форма находится в [28 — Протокол FAT](28-hardware-fat-protocol.md).
 
 Полный software fault FAT:
 

@@ -13,7 +13,9 @@ const [
     firewall,
     kiosk,
     factoryExample,
-    docs
+    docs,
+    bundle,
+    image
 ] = await Promise.all([
     read("../factory/versions.env"),
     read("../factory/preseed.cfg"),
@@ -25,7 +27,9 @@ const [
     read("../deploy/debian/nftables.conf"),
     read("../deploy/debian/gas-monitoring-kiosk.service"),
     read("../deploy/debian/factory.env.example"),
-    read("../docs/factory-installation.md")
+    read("../docs/02-factory-installation.md"),
+    read("../factory/build-bundle.sh"),
+    read("../docker/node-red/Dockerfile")
 ]);
 
 for (const expected of [
@@ -69,10 +73,22 @@ for (const name of [
     "MODBUS_INTERFACE",
     "MODBUS_ADDRESS",
     "SALT_MASTER",
-    "REMOTE_USER"
+    "REMOTE_USER",
+    "ADMIN_ACCESS_CODE",
+    "NODE_RED_ADMIN_PASSWORD",
+    "REMOTE_INITIAL_PASSWORD"
 ]) {
     assert.match(factoryExample, new RegExp(`^${name}=`, "m"));
     assert.ok(docs.includes(`\`${name}\``), `${name} must be documented`);
 }
+
+assert.match(installer, /admin_code="\$ADMIN_ACCESS_CODE"/);
+assert.match(installer, /admin_password="\$NODE_RED_ADMIN_PASSWORD"/);
+assert.match(installer, /remote_password="\$REMOTE_INITIAL_PASSWORD"/);
+assert.match(bundle, /docker build[\s\S]*gas-monitoring-node-red:0\.1\.0/);
+assert.doesNotMatch(bundle, /compose\.production\.yaml[\s\S]*build node-red/);
+assert.match(image, /tools\/wb-mai6-commission\.mjs/);
+assert.match(image, /tools\/hardware-fat\.mjs/);
+assert.match(installer, /gas-monitoring-acceptance\.service/);
 
 console.log("Factory installation, network, Salt independence and kiosk contracts passed");

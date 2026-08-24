@@ -1,4 +1,4 @@
-# Развёртывание
+# 24. Среда разработки и симуляция
 
 ## Требования
 
@@ -85,7 +85,7 @@ FAT-профиль запускает отдельный Modbus TCP simulator. N
 
 ## Production
 
-Debian 13, systemd, kiosk и production override описаны в [debian-13.md](debian-13.md). Первичная настройка оборудования выполняется по [wb-mai6-commissioning.md](wb-mai6-commissioning.md) до запуска Node-RED.
+Debian 13, systemd, kiosk и production override описаны в [23 — Debian runtime](23-debian-13.md). Первичная настройка оборудования выполняется по [05 — USR‑DR134](05-usr-dr134-commissioning.md) и [06 — WB‑MAI6](06-wb-mai6-commissioning.md) до запуска Node-RED.
 
 ## Остановка
 

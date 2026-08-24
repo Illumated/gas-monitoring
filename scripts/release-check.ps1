@@ -105,13 +105,15 @@ try {
     }
 } finally {
     $failed = @($results | Where-Object status -eq "FAIL").Count
-    [ordered]@{
+    $evidenceJson = [ordered]@{
         generated_utc = (Get-Date).ToUniversalTime().ToString("o")
         git_commit = git -c "safe.directory=$repositoryRoot" rev-parse HEAD
         result = if ($failed) { "FAIL" } else { "PASS" }
         endurance_24h = "NOT_RUN_BY_DECISION"
         steps = $results
-    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $EvidencePath -Encoding utf8NoBOM
+    } | ConvertTo-Json -Depth 6
+    $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText([System.IO.Path]::GetFullPath($EvidencePath), $evidenceJson, $utf8WithoutBom)
     Write-Host "Evidence: $EvidencePath"
 }
 

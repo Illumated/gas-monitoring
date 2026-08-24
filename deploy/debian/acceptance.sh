@@ -16,6 +16,18 @@ check_service() {
   pass "$1 is enabled and active"
 }
 
+wait_http() {
+  local url="$1"
+  for _ in $(seq 1 90); do
+    if curl --fail --silent --output /dev/null "$url"; then
+      return 0
+    fi
+    sleep 2
+  done
+  echo "Timed out waiting for $url" >&2
+  return 1
+}
+
 [[ "$(id -u)" -eq 0 ]] || {
   echo "Run as root" >&2
   exit 1
@@ -53,9 +65,9 @@ check_service nginx.service
 check_service lightdm.service
 check_service nftables.service
 
-curl --fail --output /dev/null http://127.0.0.1:1880/dashboard/monitoring
-curl --fail --output /dev/null http://127.0.0.1:8086/health
-curl --fail --output /dev/null http://127.0.0.1:18082/health
+wait_http http://127.0.0.1:1880/dashboard/monitoring
+wait_http http://127.0.0.1:8086/health
+wait_http http://127.0.0.1:18082/health
 [[ "$(curl --insecure --output /dev/null --write-out '%{http_code}' https://127.0.0.1/)" == "401" ]]
 pass "local dashboard, InfluxDB, auth-service and authenticated HTTPS gateway"
 

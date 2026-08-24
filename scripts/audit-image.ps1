@@ -12,6 +12,13 @@ if (-not $OutputDirectory) {
 $outputPath = [System.IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 
+function Write-Utf8NoBom {
+    param([string]$Path, [object]$Value)
+    $text = if ($Value -is [array]) { $Value -join "`n" } else { [string]$Value }
+    $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText([System.IO.Path]::GetFullPath($Path), "$text`n", $utf8WithoutBom)
+}
+
 $dockerCommand = Get-Command docker -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
 if (-not $dockerCommand) {
     $dockerCommand = Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\resources\bin\docker.exe"
@@ -27,17 +34,20 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $sbomPath = Join-Path $outputPath "gas-monitoring-node-red.cdx.json"
-& $dockerCommand run --rm --entrypoint npm $image sbom --sbom-format cyclonedx |
-    Set-Content -LiteralPath $sbomPath -Encoding utf8NoBOM
-if ($LASTEXITCODE -ne 0) {
+$sbomRaw = & $dockerCommand run --rm --entrypoint npm $image sbom --sbom-format cyclonedx
+$sbomExit = $LASTEXITCODE
+Write-Utf8NoBom -Path $sbomPath -Value $sbomRaw
+if ($sbomExit -ne 0) {
     throw "Local CycloneDX generation failed"
 }
 
 $apkPath = Join-Path $outputPath "gas-monitoring-node-red.apk.txt"
-& $dockerCommand run --rm --entrypoint sh $image -c "apk info -vv" 2>$null |
-    Sort-Object |
-    Set-Content -LiteralPath $apkPath -Encoding utf8NoBOM
-if ($LASTEXITCODE -ne 0) {
+$apkRaw = & $dockerCommand run --rm --entrypoint awk $image `
+    '/^P:/{package=substr($0,3)} /^V:/{print package "-" substr($0,3)}' `
+    /lib/apk/db/installed | Sort-Object
+$apkExit = $LASTEXITCODE
+Write-Utf8NoBom -Path $apkPath -Value $apkRaw
+if ($apkExit -ne 0) {
     throw "Alpine package inventory failed"
 }
 
@@ -46,7 +56,7 @@ if (-not $SkipNpmAudit) {
     $auditPath = Join-Path $outputPath "gas-monitoring-node-red.npm-audit.json"
     $rawAudit = & $dockerCommand run --rm --entrypoint npm $image audit --omit=dev --json 2>$null
     $auditExit = $LASTEXITCODE
-    $rawAudit | Set-Content -LiteralPath $auditPath -Encoding utf8NoBOM
+    Write-Utf8NoBom -Path $auditPath -Value $rawAudit
     $audit = ($rawAudit -join "`n") | ConvertFrom-Json
     $vulnerabilities = $audit.metadata.vulnerabilities
     if ($auditExit -ne 0 -and [int]$vulnerabilities.critical -eq 0) {
@@ -68,7 +78,7 @@ $summary = [ordered]@{
     npm_vulnerabilities = $vulnerabilities
     result = "PASS_WITH_REVIEW"
 }
-$summary | ConvertTo-Json -Depth 6 |
-    Set-Content -LiteralPath (Join-Path $outputPath "summary.json") -Encoding utf8NoBOM
-$summary | ConvertTo-Json -Depth 6
+$summaryJson = $summary | ConvertTo-Json -Depth 6
+Write-Utf8NoBom -Path (Join-Path $outputPath "summary.json") -Value $summaryJson
+$summaryJson
 $global:LASTEXITCODE = 0

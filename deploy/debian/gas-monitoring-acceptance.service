@@ -1,0 +1,14 @@
+[Unit]
+Description=RINIR first-boot acceptance
+After=network-online.target gas-monitoring.service nginx.service lightdm.service nftables.service
+Wants=network-online.target
+ConditionPathExists=/var/lib/rinir-factory/provision.done
+ConditionPathExists=!/var/lib/rinir-factory/acceptance/initial.pass
+
+[Service]
+Type=oneshot
+ExecStart=/opt/gas-monitoring/deploy/debian/acceptance.sh
+ExecStartPost=/usr/bin/touch /var/lib/rinir-factory/acceptance/initial.pass
+
+[Install]
+WantedBy=multi-user.target

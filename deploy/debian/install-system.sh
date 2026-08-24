@@ -39,9 +39,18 @@ load_factory_config() {
   : "${INFLUXDB_RETENTION:=8760h}"
   : "${REMOTE_USER:=operator}"
   : "${REMOTE_HTTPS_PORT:=443}"
+  : "${ADMIN_ACCESS_CODE:=}"
+  : "${NODE_RED_ADMIN_PASSWORD:=}"
+  : "${REMOTE_INITIAL_PASSWORD:=}"
   [[ "$REMOTE_USER" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid REMOTE_USER"
   [[ "$REMOTE_HTTPS_PORT" == "443" ]] ||
     die "REMOTE_HTTPS_PORT currently must be 443"
+  [[ "$ADMIN_ACCESS_CODE" != replace-with-* && ${#ADMIN_ACCESS_CODE} -ge 10 ]] ||
+    die "set a unique ADMIN_ACCESS_CODE with at least 10 characters"
+  [[ "$NODE_RED_ADMIN_PASSWORD" != replace-with-* && ${#NODE_RED_ADMIN_PASSWORD} -ge 12 ]] ||
+    die "set a unique NODE_RED_ADMIN_PASSWORD with at least 12 characters"
+  [[ "$REMOTE_INITIAL_PASSWORD" != replace-with-* && ${#REMOTE_INITIAL_PASSWORD} -ge 10 ]] ||
+    die "set a unique REMOTE_INITIAL_PASSWORD with at least 10 characters"
 }
 
 install_application_files() {
@@ -59,10 +68,10 @@ generate_application_config() {
   influx_password="$(random_secret 36)"
   influx_token="$(random_secret 48)"
   credential_secret="$(random_secret 48)"
-  admin_code="$(random_secret 12)"
+  admin_code="$ADMIN_ACCESS_CODE"
   auth_service_token="$(random_secret 48)"
-  admin_password="$(random_secret 24)"
-  remote_password="$(random_secret 24)"
+  admin_password="$NODE_RED_ADMIN_PASSWORD"
+  remote_password="$REMOTE_INITIAL_PASSWORD"
   admin_hash="$(htpasswd -bnBC 10 "" "$admin_password" | cut -d: -f2 | tr -d '\r\n')"
   admin_hash="${admin_hash/\$2y\$/\$2b\$}"
 
@@ -189,6 +198,8 @@ After=nftables.service
 EOF
   install -m 0644 "$SOURCE_DIR/deploy/debian/gas-monitoring.service" \
     /etc/systemd/system/gas-monitoring.service
+  install -m 0644 "$SOURCE_DIR/deploy/debian/gas-monitoring-acceptance.service" \
+    /etc/systemd/system/gas-monitoring-acceptance.service
   install -m 0644 "$SOURCE_DIR/deploy/debian/nginx-gas-monitoring.conf" \
     /etc/nginx/sites-available/gas-monitoring
   install -m 0755 "$SOURCE_DIR/deploy/debian/nftables.conf" /etc/nftables.conf
@@ -198,7 +209,8 @@ EOF
   nginx -t
   systemctl daemon-reload
   systemctl enable docker.service salt-minion.service lightdm.service
-  systemctl enable gas-monitoring.service nginx.service nftables.service
+  systemctl enable gas-monitoring.service gas-monitoring-acceptance.service \
+    nginx.service nftables.service
 }
 
 main() {

@@ -34,7 +34,8 @@ install -m 0600 "$PAYLOAD_DIR/factory.env" /etc/rinir-factory.env
 bash "$PAYLOAD_DIR/app/deploy/debian/firstboot.sh"
 bash "$PAYLOAD_DIR/app/deploy/debian/install-system.sh"
 
-systemctl enable gas-monitoring.service nginx.service lightdm.service salt-minion.service nftables.service
+systemctl enable gas-monitoring.service gas-monitoring-acceptance.service \
+  nginx.service lightdm.service salt-minion.service nftables.service
 install -d -m 0755 /var/lib/rinir-factory
 touch /var/lib/rinir-factory/provision.done
 systemctl disable factory-provision.service

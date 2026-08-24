@@ -29,10 +29,10 @@ command -v git >/dev/null
 command -v sha256sum >/dev/null
 
 npm --prefix "$REPO_DIR" test
-docker compose \
-  -f "$REPO_DIR/docker/compose.yaml" \
-  -f "$REPO_DIR/docker/compose.production.yaml" \
-  build node-red
+docker build \
+  --file "$REPO_DIR/docker/node-red/Dockerfile" \
+  --tag gas-monitoring-node-red:0.1.0 \
+  "$REPO_DIR"
 docker pull "influxdb:2.7.12@sha256:b8d940ca9376f85118260f5b6bd236b8a00b1749c3350c5578d4cde8e27f31f2"
 docker tag \
   "influxdb@sha256:b8d940ca9376f85118260f5b6bd236b8a00b1749c3350c5578d4cde8e27f31f2" \

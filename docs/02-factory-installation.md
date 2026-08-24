@@ -1,4 +1,4 @@
-# Заводская установка
+# 02. Заводская установка
 
 ## Результат
 
@@ -24,6 +24,7 @@ http://127.0.0.1:1880/dashboard/monitoring
 | `deploy/debian/firstboot.sh` | Hostname, два LAN и Salt minion ID |
 | `deploy/debian/install-system.sh` | Секреты, systemd, kiosk, nginx и firewall |
 | `deploy/debian/acceptance.sh` | Заводской приёмочный отчёт |
+| `deploy/debian/gas-monitoring-acceptance.service` | Автоматический первый приёмочный прогон после загрузки |
 
 Используется DVD-1, а не netinst: netinst требует сетевого зеркала, тогда как базовая ОС и kiosk должны установиться автономно. Preseed помещается в initrd, поэтому Debian Installer читает его до интерактивных вопросов.
 
@@ -48,6 +49,9 @@ chmod 0600 /secure/factory-RINIR.env
 | `SALT_MASTER` | DNS/IP Salt master; пустое значение оставляет стандартное имя `salt` |
 | `REMOTE_HTTPS_PORT` | Сейчас фиксировано `443` |
 | `REMOTE_USER` | Логин удалённого чтения dashboard |
+| `ADMIN_ACCESS_CODE` | Уникальный код администрирования сервисного UI, не менее 10 символов |
+| `NODE_RED_ADMIN_PASSWORD` | Уникальный пароль пользователя `admin` в Node‑RED editor, не менее 12 символов |
+| `REMOTE_INITIAL_PASSWORD` | Уникальный начальный пароль `REMOTE_USER`, не менее 10 символов |
 | `TZ` | Часовой пояс ОС и контейнеров |
 | `INFLUXDB_RETENTION` | Срок хранения InfluxDB; `8760h` — один год |
 
@@ -71,7 +75,7 @@ chmod 0600 /secure/factory-RINIR.env
 4. загружает pinned Docker `29.6.2`, containerd `2.2.6`, Buildx `0.35.0`, Compose `5.3.1` и Salt LTS `3008.2` вместе с зависимостями;
 5. формирует `SHA256SUMS`.
 
-Секретный `factory.env` включается в конкретный заводской образ, но не попадает в Git.
+Секретный `factory.env` включается в конкретный заводской образ, но не попадает в Git. Три значения `replace-with-*` необходимо заменить до сборки: installer откажется продолжать с шаблонными или слишком короткими реквизитами. Это обеспечивает известный инженеру доступ после автономной установки, на которой интерактивные Linux-аккаунты отключены.
 
 ## Сборка ISO
 
@@ -94,14 +98,21 @@ chmod 0600 /secure/factory-RINIR.env
 3. `firstboot.sh` строит имя `RINIR-XXXXXX` из последних шести символов DMI UUID, а при его отсутствии — `machine-id`.
 4. Management LAN получает DHCP и единственный default route; Modbus LAN получает статический адрес без gateway, DNS, RA и link-local.
 5. Salt minion устанавливается и включается всегда. Недоступность master не влияет на `gas-monitoring.service`.
-6. Генерируются уникальные secrets, администраторский код, bcrypt-пароль Node-RED, начальный удалённый пользователь и самоподписанный TLS certificate. Root-only реквизиты записываются в `/etc/gas-monitoring/factory-credentials.txt`.
+6. Внутренние secrets генерируются автоматически; администраторский код, пароль Node‑RED и начальный удалённый пароль берутся из объектового `factory.env`. Самоподписанный TLS certificate создаётся на устройстве. Root-only копия реквизитов записывается в `/etc/gas-monitoring/factory-credentials.txt`.
 7. После второй перезагрузки запускаются Docker Compose, nginx, firewall, LightDM и Chromium kiosk.
 
 Самоподписанный certificate не требует корпоративного CA. Удалённый браузер покажет предупреждение, пока certificate конкретного устройства не добавлен в доверенные. Salt позднее может заменить certificate, не меняя приложение.
 
 ## Приёмка
 
-На готовом устройстве:
+После второй загрузки `gas-monitoring-acceptance.service` автоматически ждёт готовности HTTP endpoints и запускает проверку. Отчёт сохраняется в `/var/lib/rinir-factory/acceptance/`, а успешное завершение отмечается файлом `initial.pass`. Проверить результат через Salt:
+
+```bash
+systemctl status gas-monitoring-acceptance.service --no-pager
+ls -l /var/lib/rinir-factory/acceptance/
+```
+
+Для повторного ручного запуска через Salt или сервисную сессию:
 
 ```bash
 sudo /opt/gas-monitoring/deploy/debian/acceptance.sh
@@ -109,4 +120,11 @@ sudo /opt/gas-monitoring/deploy/debian/acceptance.sh
 
 Проверяются Debian/architecture, hostname, обе сетевые роли, отсутствие default route на Modbus LAN, Salt, Docker, Compose, nginx, kiosk, firewall, health endpoints и отсутствие LAN-публикации портов `1880/8086`. Отчёт сохраняется в `/var/lib/rinir-factory/acceptance/`.
 
-Проверка WB-MAI6 выполняется позднее по `docs/wb-mai6-commissioning.md` и не входит в offline OS installation.
+Настройка цепочки выполняется позднее по [05 — USR‑DR134](05-usr-dr134-commissioning.md) и [06 — WB‑MAI6](06-wb-mai6-commissioning.md); она не входит в offline OS installation.
+
+## Официальные источники версий
+
+- [Debian 13.6 point release](https://www.debian.org/News/2026/20260711)
+- [Docker packages for Debian 13 (trixie), amd64](https://download.docker.com/linux/debian/dists/trixie/pool/stable/amd64/)
+- [Salt Project downloads and current LTS](https://docs.saltproject.io/salt/install-guide/en/latest/topics/downloads.html)
+- [Salt installation on Debian](https://docs.saltproject.io/salt/install-guide/en/latest/topics/install-by-operating-system/linux-deb.html)

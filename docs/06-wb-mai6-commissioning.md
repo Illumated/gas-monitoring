@@ -1,4 +1,4 @@
-# Первичная настройка WB-MAI6
+# 06. Первичная настройка WB-MAI6
 
 Этап обязателен перед первым запуском Node-RED и повторяется после замены или сброса WB-MAI6. Node-RED не конфигурирует модуль и в штатной эксплуатации только читает пересчитанные значения.
 
@@ -41,6 +41,18 @@ INxN: type = 4096*X+1025, low = 4096*X+1033, high = 4096*X+1035, value = 4096*X+
 3. Проверить питание, полярность токовых петель, RS-485 и адрес `65`.
 4. Выполнить read-only снимок:
 
+   На установленном RINIR-устройстве используется инструмент, уже включённый в product image; Node.js или `mbpoll` на host устанавливать не требуется:
+
+   ```bash
+   sudo install -d -m 0755 /var/lib/rinir-factory/commissioning
+   sudo docker run --rm --network host \
+     --volume /var/lib/rinir-factory/commissioning:/evidence \
+     --entrypoint node gas-monitoring-node-red:0.1.0 \
+     /usr/src/node-red/tools/wb-mai6-commission.mjs \
+     --read-only --host 192.168.50.10 --unit 65 \
+     --inputs IN1P,IN2P,IN3P --evidence /evidence
+   ```
+
    На Windows и Debian при установленном Node.js:
 
    ```powershell
@@ -56,6 +68,17 @@ INxN: type = 4096*X+1025, low = 4096*X+1033, high = 4096*X+1035, value = 4096*X+
 5. Проверить сохранённый файл в `commissioning-evidence/`.
 6. Выполнить согласованную запись:
 
+   На RINIR-устройстве:
+
+   ```bash
+   sudo docker run --rm --network host \
+     --volume /var/lib/rinir-factory/commissioning:/evidence \
+     --entrypoint node gas-monitoring-node-red:0.1.0 \
+     /usr/src/node-red/tools/wb-mai6-commission.mjs \
+     --apply --confirm APPLY --host 192.168.50.10 --unit 65 \
+     --inputs IN1P,IN2P,IN3P --evidence /evidence
+   ```
+
    ```powershell
    node scripts/wb-mai6-commission.mjs --apply --confirm APPLY --host 192.168.50.10 --unit 65 --inputs IN1P,IN2P,IN3P
    ```
@@ -64,6 +87,10 @@ INxN: type = 4096*X+1025, low = 4096*X+1033, high = 4096*X+1035, value = 4096*X+
 8. Обесточить и включить модуль, затем повторить `--read-only`. Настройки должны сохраниться.
 9. Подать эталонные 4, 12 и 20 мА на каждый вход. Ожидаемые пересчитанные значения: `0`, `80`, `160`.
 10. Только после этого запустить Node-RED и проверить `0.0`, `8.0`, `16.0 bar`, обрыв каждой петли и восстановление.
+
+   ```bash
+   sudo systemctl start gas-monitoring.service
+   ```
 
 ## Ручная проверка
 

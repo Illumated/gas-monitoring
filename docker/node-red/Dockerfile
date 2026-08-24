@@ -25,6 +25,9 @@ COPY --chown=node-red:node-red docker/configure-influx-retention.cjs /opt/gas-mo
 COPY --chown=node-red:node-red docker/render-runtime-flow.cjs /opt/gas-monitoring/render-runtime-flow.cjs
 COPY --chown=node-red:node-red docker/derive-monitor-id.cjs /opt/gas-monitoring/derive-monitor-id.cjs
 COPY --chown=node-red:node-red docker/auth-service.cjs /opt/gas-monitoring/auth-service.cjs
+COPY --chown=node-red:node-red scripts/wb-mai6-commission.mjs /usr/src/node-red/tools/wb-mai6-commission.mjs
+COPY --chown=node-red:node-red scripts/hardware-fat.mjs /usr/src/node-red/tools/hardware-fat.mjs
+COPY --chown=node-red:node-red scripts/lib/wb-mai6-map.mjs /usr/src/node-red/tools/lib/wb-mai6-map.mjs
 
 RUN chmod 0555 /opt/gas-monitoring/start.sh
 
