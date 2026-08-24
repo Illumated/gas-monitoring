@@ -429,6 +429,9 @@ assert.deepEqual(authUsersUiResult[0]._client, { socketId: "client-admin" });
 assert.equal(authUsersUiResult[1].payload.operator, "Администратор");
 assert.match(byId.get("ui-engineering").format, /!this\.dirty\|\|p\.saved/, "background refresh must not overwrite a dirty settings form");
 assert.doesNotMatch(byId.get("ui-engineering").format, /v-model="operator"/, "operator identity must not be editable");
+assert.doesNotMatch(byId.get("ui-engineering").format, /Исполнитель определяется по персональному коду/, "service UI must not expose implementation guidance");
+assert.doesNotMatch(byId.get("ui-engineering").format, /Черновик формы не перезаписывается/, "service UI must not expose internal refresh behavior");
+assert.match(byId.get("ui-engineering").format, /\.admin-identity\{[^}]*gap:12px/, "admin identity and creation date must have a visible gap");
 
 const eventNode = byId.get("fn-event-write");
 const eventFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", eventNode.func);
