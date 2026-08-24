@@ -18,7 +18,7 @@
 
 ## 2. Подготовить Windows-сборочную машину
 
-Требуются Windows 10/11 x64, Docker Desktop в режиме Linux containers, минимум `40 GB` свободного места и доступ в Интернет. Из PowerShell в корне репозитория:
+Требуются Windows 10/11 x64, Git for Windows, Docker Desktop в режиме Linux containers, минимум `40 GB` свободного места и доступ в Интернет. Репозиторий необходимо получить через `git clone`, не через GitHub `Download ZIP`. Из PowerShell в корне репозитория:
 
 ```powershell
 docker version

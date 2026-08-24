@@ -34,6 +34,7 @@ http://127.0.0.1:1880/dashboard/monitoring
 ## Требования к Windows-сборочной машине
 
 - Windows 10/11 x64;
+- Git for Windows с доступной командой `git`;
 - не менее `40 GB` свободного места на NTFS-диске;
 - Docker Desktop, запущенный в режиме Linux containers;
 - доступ к Debian, Docker Hub, Docker repository и Salt repository;
