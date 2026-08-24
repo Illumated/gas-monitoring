@@ -41,6 +41,14 @@ http://127.0.0.1:1880/dashboard/monitoring
 
 Отдельная Debian-машина, Node.js, npm, `xorriso` и установленный вручную WSL distribution не требуются. Все Linux-инструменты выполняются внутри зафиксированных Docker-контейнеров.
 
+Проект необходимо получить командой `git clone`. Архив GitHub `Download ZIP` не подходит: в нём нет `.git`, поэтому невозможно подтвердить чистоту исходников, экспортировать зафиксированный `HEAD` и записать commit в `BUILD-INFO.txt`.
+
+```powershell
+Set-Location C:\Users\user\Downloads
+git clone https://github.com/Illumated/gas-monitoring.git
+Set-Location .\gas-monitoring
+```
+
 ## Параметры устройства
 
 Скопировать `deploy/debian/factory.env.example` в защищённый каталог вне репозитория:
@@ -96,7 +104,7 @@ PowerShell необходимо открыть в корне чистого ре
 
 Скрипт автоматически:
 
-1. проверяет наличие исходного Debian ISO и требует Docker Desktop `linux/amd64`;
+1. проверяет наличие `.git`, исходного Debian ISO и требует Docker Desktop `linux/amd64`;
 2. собирает закреплённый factory builder и требует чистый Git worktree;
 3. внутри builder выполняет `npm ci`, contract tests, flow audit, secret scan и dependency audit;
 4. собирает product image и получает pinned InfluxDB image;

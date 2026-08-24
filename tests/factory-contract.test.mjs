@@ -102,6 +102,8 @@ assert.match(windowsBuilder, /Get-FileHash -Algorithm SHA256/);
 assert.match(windowsBuilder, /Docker Desktop must use Linux amd64 containers/);
 assert.match(windowsBuilder, /BUILD-INFO\.txt|Factory ISO created and verified/);
 assert.match(windowsBuilder, /Output directory must be outside the repository/);
+assert.match(windowsBuilder, /GitHub ZIP archives are not supported/);
+assert.match(windowsBuilder, /New-Item -ItemType Directory -Path \$nodeModulesMountPoint/);
 assert.match(isoBuilder, /xorriso/);
 assert.match(isoBuilder, /docker:29\.6\.2-cli@sha256:/);
 assert.match(windowsContainer, /tr -d '\\r'/);

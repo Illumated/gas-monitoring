@@ -21,6 +21,9 @@ $factoryConfigPath = (Resolve-Path -LiteralPath $FactoryConfig).Path
 $outputPath = [System.IO.Path]::GetFullPath($OutputDirectory)
 $builderImage = "gas-monitoring-factory-builder:0.1.0"
 
+if (-not (Test-Path -LiteralPath (Join-Path $repositoryRoot ".git"))) {
+    throw "Factory build requires a Git clone with .git metadata; GitHub ZIP archives are not supported"
+}
 if (-not (Test-Path -LiteralPath $sourceIsoPath -PathType Leaf)) {
     throw "Source Debian ISO not found: $sourceIsoPath"
 }
@@ -63,6 +66,11 @@ docker build `
     $repositoryRoot
 if ($LASTEXITCODE -ne 0) {
     throw "Factory builder image failed"
+}
+
+$nodeModulesMountPoint = Join-Path $repositoryRoot "node_modules"
+if (-not (Test-Path -LiteralPath $nodeModulesMountPoint -PathType Container)) {
+    New-Item -ItemType Directory -Path $nodeModulesMountPoint | Out-Null
 }
 
 $mounts = @(
