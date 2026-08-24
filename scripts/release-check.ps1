@@ -63,8 +63,9 @@ try {
         $powerShellFiles = Get-ChildItem -Path scripts, factory -Filter *.ps1 -File
         foreach ($file in $powerShellFiles) {
             $parseErrors = $null
-            [System.Management.Automation.Language.Parser]::ParseFile(
-                $file.FullName, [ref]$null, [ref]$parseErrors
+            $powerShellSource = [System.IO.File]::ReadAllText($file.FullName)
+            [System.Management.Automation.Language.Parser]::ParseInput(
+                $powerShellSource, [ref]$null, [ref]$parseErrors
             ) | Out-Null
             if ($parseErrors.Count) {
                 throw "PowerShell syntax error in $($file.FullName): $($parseErrors[0].Message)"
