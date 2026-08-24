@@ -47,7 +47,7 @@ const factoryGuide = await readFile(resolve(root, "docs", "02-factory-installati
 for (const required of ["USBImager", "Get-FileHash", "RINIR-13.6.0-amd64.iso", "DD Image mode", "UEFI:"]) {
     assert.ok(factoryGuide.includes(required), `Windows USB guide must document ${required}`);
 }
-for (const required of ["build-windows.ps1", "Docker Desktop", "BUILD-INFO.txt", "SHA256SUMS.sign"]) {
+for (const required of ["build-windows.ps1", "Docker Desktop", "BUILD-INFO.txt", "SourceIso"]) {
     assert.ok(factoryGuide.includes(required), `Windows image build guide must document ${required}`);
 }
 

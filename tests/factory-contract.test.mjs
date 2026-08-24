@@ -17,6 +17,7 @@ const [
     bundle,
     image,
     windowsBuilder,
+    isoBuildScript,
     isoBuilder,
     windowsContainer
 ] = await Promise.all([
@@ -34,6 +35,7 @@ const [
     read("../factory/build-bundle.sh"),
     read("../docker/node-red/Dockerfile"),
     read("../factory/build-windows.ps1"),
+    read("../factory/build-iso.sh"),
     read("../factory/Dockerfile.windows-builder"),
     read("../factory/build-windows-container.sh")
 ]);
@@ -107,5 +109,8 @@ assert.match(windowsContainer, /replace-with-/);
 assert.match(windowsContainer, /ADMIN_ACCESS_CODE must contain at least 10 characters/);
 assert.match(windowsContainer, /may contain only A-Z/);
 assert.match(windowsBuilder, /Factory build evidence was not created/);
+assert.doesNotMatch(windowsBuilder, /SourceSha256/);
+assert.doesNotMatch(windowsContainer, /SOURCE_SHA256/);
+assert.doesNotMatch(isoBuildScript, /SOURCE_SHA256/);
 
 console.log("Factory installation, network, Salt independence and kiosk contracts passed");

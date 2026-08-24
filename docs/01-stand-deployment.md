@@ -41,9 +41,9 @@ notepad.exe C:\RINIR-secure\factory-RINIR.env
 
 ## 4. Собрать автономный ISO на Windows
 
-Скачать официальный Debian DVD-1, проверить подписанный Debian checksum и выполнить Windows-сборку по [02 — Заводская установка](02-factory-installation.md#штатная-сборка-rinir-iso-на-windows). PowerShell-скрипт через Docker Desktop соберёт offline bundle, product images и итоговый RINIR ISO; отдельная Debian-машина и ручной WSL не нужны. Перед физическим стендом выполнить одну чистую установку в виртуальной машине с двумя виртуальными LAN.
+Скачать официальный Debian DVD-1 и выполнить Windows-сборку по [02 — Заводская установка](02-factory-installation.md#штатная-сборка-rinir-iso-на-windows). PowerShell-скрипт через Docker Desktop соберёт offline bundle, product images и итоговый RINIR ISO; отдельная Debian-машина и ручной WSL не нужны. Перед физическим стендом выполнить одну чистую установку в виртуальной машине с двумя виртуальными LAN.
 
-**СТОП:** не записывать ISO на стенд, если сборочные тесты, checksum или установка в чистой VM не прошли.
+**СТОП:** не записывать ISO на стенд, если сборочные тесты или установка в чистой VM не прошли.
 
 ## 5. Подготовить загрузочную флешку на Windows
 

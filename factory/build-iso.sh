@@ -3,10 +3,9 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly REPO_DIR
-readonly SOURCE_ISO="${1:?usage: build-iso.sh SOURCE_DVD_ISO SOURCE_SHA256 BUNDLE_DIR OUTPUT_ISO}"
-readonly SOURCE_SHA256="${2:?usage: build-iso.sh SOURCE_DVD_ISO SOURCE_SHA256 BUNDLE_DIR OUTPUT_ISO}"
-readonly BUNDLE_DIR="${3:?usage: build-iso.sh SOURCE_DVD_ISO SOURCE_SHA256 BUNDLE_DIR OUTPUT_ISO}"
-readonly OUTPUT_ISO="${4:?usage: build-iso.sh SOURCE_DVD_ISO SOURCE_SHA256 BUNDLE_DIR OUTPUT_ISO}"
+readonly SOURCE_ISO="${1:?usage: build-iso.sh SOURCE_DVD_ISO BUNDLE_DIR OUTPUT_ISO}"
+readonly BUNDLE_DIR="${2:?usage: build-iso.sh SOURCE_DVD_ISO BUNDLE_DIR OUTPUT_ISO}"
+readonly OUTPUT_ISO="${3:?usage: build-iso.sh SOURCE_DVD_ISO BUNDLE_DIR OUTPUT_ISO}"
 
 # shellcheck disable=SC1091
 source "$REPO_DIR/factory/versions.env"
@@ -22,10 +21,6 @@ command -v sha256sum >/dev/null
 }
 [[ -r "$BUNDLE_DIR/SHA256SUMS" ]] || {
   echo "Factory bundle is incomplete: $BUNDLE_DIR" >&2
-  exit 1
-}
-[[ "$(sha256sum "$SOURCE_ISO" | cut -d' ' -f1)" == "$SOURCE_SHA256" ]] || {
-  echo "Source Debian ISO checksum mismatch" >&2
   exit 1
 }
 (

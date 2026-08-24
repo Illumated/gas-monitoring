@@ -75,38 +75,13 @@ notepad.exe C:\RINIR-secure\factory-RINIR.env
 
 ## Штатная сборка RINIR ISO на Windows
 
-### 1. Скачать и проверить исходный Debian ISO
+### 1. Скачать исходный Debian ISO
 
-С [официального каталога Debian amd64 DVD](https://cdimage.debian.org/debian-cd/current/amd64/iso-dvd/) скачать в один каталог:
+С [официального каталога Debian amd64 DVD](https://cdimage.debian.org/debian-cd/current/amd64/iso-dvd/) скачать:
 
 ```text
 debian-13.6.0-amd64-DVD-1.iso
-SHA256SUMS
-SHA256SUMS.sign
 ```
-
-Подпись `SHA256SUMS.sign` должна быть проверена ключом Debian CD согласно [официальной процедуре Debian](https://www.debian.org/CD/verify). Только после успешной OpenPGP-проверки извлечь SHA‑256 нужного ISO:
-
-```powershell
-$debianIsoName = 'debian-13.6.0-amd64-DVD-1.iso'
-$line = Select-String -LiteralPath C:\RINIR-source\SHA256SUMS `
-    -Pattern ([regex]::Escape($debianIsoName) + '$') |
-    Select-Object -ExpandProperty Line
-
-if (-not $line) {
-    throw "В SHA256SUMS отсутствует $debianIsoName"
-}
-
-$debianSha256 = ($line -split '\s+')[0]
-$actual = (Get-FileHash -Algorithm SHA256 `
-    -LiteralPath "C:\RINIR-source\$debianIsoName").Hash
-
-if ($actual -ne $debianSha256.ToUpperInvariant()) {
-    throw 'Исходный Debian ISO не прошёл проверку SHA-256'
-}
-```
-
-Не брать checksum из сообщения, переписки или стороннего сайта.
 
 ### 2. Запустить единую сборку
 
@@ -116,13 +91,12 @@ PowerShell необходимо открыть в корне чистого ре
 .\factory\build-windows.ps1 `
     -FactoryConfig C:\RINIR-secure\factory-RINIR.env `
     -SourceIso C:\RINIR-source\debian-13.6.0-amd64-DVD-1.iso `
-    -SourceSha256 $debianSha256 `
     -OutputDirectory C:\RINIR-build\RINIR-13.6.0
 ```
 
 Скрипт автоматически:
 
-1. проверяет SHA‑256 исходного Debian ISO и требует Docker Desktop `linux/amd64`;
+1. проверяет наличие исходного Debian ISO и требует Docker Desktop `linux/amd64`;
 2. собирает закреплённый factory builder и требует чистый Git worktree;
 3. внутри builder выполняет `npm ci`, contract tests, flow audit, secret scan и dependency audit;
 4. собирает product image и получает pinned InfluxDB image;
@@ -169,17 +143,16 @@ Factory ISO created and verified
 
 ### Сборка ISO
 
-Скачать официальный `debian-13.6.0-amd64-DVD-1.iso`, отдельно получить его SHA-256 из подписанного Debian `SHA256SUMS` и выполнить:
+Скачать официальный `debian-13.6.0-amd64-DVD-1.iso` и выполнить:
 
 ```bash
 ./factory/build-iso.sh \
   /srv/iso/debian-13.6.0-amd64-DVD-1.iso \
-  <SHA256-ИЗ-DEBIAN> \
   /srv/rinir-build/factory \
   /srv/rinir-build/RINIR-13.6.0-amd64.iso
 ```
 
-Рядом создаётся `RINIR-13.6.0-amd64.iso.sha256`. Перед записью на USB проверяются оба checksum: исходного Debian ISO и итогового RINIR ISO.
+Рядом создаётся `RINIR-13.6.0-amd64.iso.sha256`. Исходный Debian ISO по SHA‑256 не проверяется. Итоговый checksum относится только к собранному RINIR ISO.
 
 ## Подготовка загрузочной флешки на Windows
 

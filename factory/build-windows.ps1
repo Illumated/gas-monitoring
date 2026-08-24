@@ -4,10 +4,6 @@ param(
     [string]$SourceIso,
 
     [Parameter(Mandatory)]
-    [ValidatePattern('^[A-Fa-f0-9]{64}$')]
-    [string]$SourceSha256,
-
-    [Parameter(Mandatory)]
     [string]$FactoryConfig,
 
     [string]$OutputDirectory
@@ -52,11 +48,6 @@ if (Test-Path -LiteralPath $outputPath) {
     New-Item -ItemType Directory -Path $outputPath | Out-Null
 }
 
-$actualSourceSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceIsoPath).Hash
-if ($actualSourceSha256 -ne $SourceSha256.ToUpperInvariant()) {
-    throw "Source Debian ISO SHA-256 mismatch: expected $SourceSha256, got $actualSourceSha256"
-}
-
 $dockerPlatform = docker info --format '{{.OSType}}/{{.Architecture}}'
 if ($LASTEXITCODE -ne 0) {
     throw "Docker Desktop is not available"
@@ -88,7 +79,7 @@ $dockerArguments = @("run", "--rm", "--platform", "linux/amd64")
 foreach ($mount in $mounts) {
     $dockerArguments += @("--mount", $mount)
 }
-$dockerArguments += @("--env", "SOURCE_SHA256=$($SourceSha256.ToLowerInvariant())", $builderImage)
+$dockerArguments += $builderImage
 
 & docker @dockerArguments
 if ($LASTEXITCODE -ne 0) {

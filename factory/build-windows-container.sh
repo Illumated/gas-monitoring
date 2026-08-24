@@ -8,7 +8,6 @@ readonly OUTPUT_DIR=/output
 readonly BUNDLE_DIR=/work/factory
 readonly NORMALIZED_FACTORY_CONFIG=/work/factory.env
 
-: "${SOURCE_SHA256:?SOURCE_SHA256 is required}"
 [[ "$(uname -m)" == "x86_64" ]] || {
   echo "Windows factory builder requires linux/amd64 Docker containers" >&2
   exit 1
@@ -72,7 +71,6 @@ source "$REPO_DIR/factory/versions.env"
 readonly OUTPUT_ISO="$OUTPUT_DIR/RINIR-${DEBIAN_RELEASE}-amd64.iso"
 bash "$REPO_DIR/factory/build-iso.sh" \
   "$SOURCE_ISO" \
-  "${SOURCE_SHA256,,}" \
   "$BUNDLE_DIR" \
   "$OUTPUT_ISO"
 
