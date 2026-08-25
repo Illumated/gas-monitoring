@@ -64,8 +64,10 @@ assert.match(preseed, /debconf\/priority select critical/);
 assert.match(preseed, /netcfg\/enable boolean false/);
 assert.match(preseed, /\/bin\/rinir-select-install-disk/);
 assert.match(preseed, /partman\/confirm_nooverwrite boolean true/);
-assert.match(preseed, /passwd\/root-login boolean false/);
+assert.match(preseed, /passwd\/root-login boolean true/);
+assert.match(preseed, /passwd\/root-password-crypted password \*/);
 assert.match(preseed, /passwd\/make-user boolean false/);
+assert.match(preseed, /in-target passwd --lock root/);
 assert.match(preseed, /grub-installer\/bootdev string default/);
 assert.match(preseed, /touch \/target\/var\/lib\/rinir-factory\/install\.done/);
 assert.ok(
