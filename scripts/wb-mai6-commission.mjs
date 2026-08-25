@@ -22,6 +22,7 @@ if (has("--help")) {
   node scripts/wb-mai6-commission.mjs --list
   node scripts/wb-mai6-commission.mjs --read-only [--inputs IN1P,IN2P]
   node scripts/wb-mai6-commission.mjs --apply --inputs IN1P,IN2P --confirm APPLY
+  node scripts/wb-mai6-commission.mjs --apply --profile gas-monitoring --confirm APPLY
 
 Options:
   --host HOST       default 192.168.50.10
@@ -30,9 +31,10 @@ Options:
   --inputs LIST     comma-separated IN1P..IN6P and IN1N..IN6N
   --all-p           select IN1P..IN6P
   --all             select all 12 single-ended inputs
+  --profile NAME    gas-monitoring: IN1P..IN5P 4-20 mA, IN6P dry contact
   --type VALUE      default 4866 (4-20 mA)
   --low VALUE       default 0
-  --high VALUE      default 160
+  --high VALUE      default 100 (0-10 bar in tenths)
   --evidence PATH   default commissioning-evidence`);
     process.exit(0);
 }
@@ -47,7 +49,9 @@ if (apply === has("--read-only")) {
     throw new Error("Specify exactly one mode: --read-only or --apply");
 }
 
-const explicitlySelected = has("--inputs") || has("--all-p") || has("--all");
+const profile = String(valueOf("--profile", "")).trim().toLowerCase();
+if (profile && profile !== "gas-monitoring") throw new Error("--profile must be gas-monitoring");
+const explicitlySelected = has("--inputs") || has("--all-p") || has("--all") || !!profile;
 if (apply && !explicitlySelected) {
     throw new Error("--apply requires explicit --inputs, --all-p or --all");
 }
@@ -55,11 +59,13 @@ if (apply && valueOf("--confirm", "") !== "APPLY") {
     throw new Error("--apply requires --confirm APPLY");
 }
 
-const selected = has("--all")
+const selected = profile
+    ? ["IN1P", "IN2P", "IN3P", "IN4P", "IN5P", "IN6P"]
+    : has("--all")
     ? allInputs
     : has("--all-p")
         ? allInputs.filter((input) => input.endsWith("P"))
-        : String(valueOf("--inputs", "IN1P,IN2P,IN3P"))
+        : String(valueOf("--inputs", "IN1P,IN2P,IN3P,IN4P,IN5P"))
             .split(",")
             .map((input) => input.trim().toUpperCase())
             .filter(Boolean);
@@ -71,7 +77,7 @@ const port = integer("--port", 502, 1, 65535);
 const unit = integer("--unit", 65, 1, 247);
 const sensorType = integer("--type", 4866, 0, 65535);
 const scaleLow = integer("--low", 0, -32768, 32767);
-const scaleHigh = integer("--high", 160, -32768, 32767);
+const scaleHigh = integer("--high", 100, -32768, 32767);
 if (scaleLow >= scaleHigh) {
     throw new Error("--low must be less than --high");
 }
@@ -100,7 +106,7 @@ const snapshot = async () => Promise.all(registerMap.map(async (registers) => ({
 const evidence = {
     createdUtc: new Date().toISOString(),
     target: { host, port, unit },
-    requested: { inputs: uniqueInputs, sensorType, scaleLow, scaleHigh },
+    requested: { inputs: uniqueInputs, profile: profile || null, sensorType, scaleLow, scaleHigh },
     mode: apply ? "apply" : "read-only"
 };
 
@@ -111,13 +117,17 @@ try {
 
     if (apply) {
         for (const registers of registerMap) {
-            await client.writeRegister(registers.type, sensorType);
-            await client.writeRegister(registers.scaleLow, scaleLow & 0xffff);
-            await client.writeRegister(registers.scaleHigh, scaleHigh & 0xffff);
+            const dryContact = profile === "gas-monitoring" && registers.input === "IN6P";
+            await client.writeRegister(registers.type, dryContact ? 5632 : sensorType);
+            if (!dryContact) {
+                await client.writeRegister(registers.scaleLow, scaleLow & 0xffff);
+                await client.writeRegister(registers.scaleHigh, scaleHigh & 0xffff);
+            }
         }
         evidence.after = await snapshot();
         for (const input of evidence.after) {
-            if (input.configuredType !== sensorType || input.configuredLow !== scaleLow || input.configuredHigh !== scaleHigh) {
+            const dryContact = profile === "gas-monitoring" && input.input === "IN6P";
+            if (input.configuredType !== (dryContact ? 5632 : sensorType) || (!dryContact && (input.configuredLow !== scaleLow || input.configuredHigh !== scaleHigh))) {
                 throw new Error(`Readback verification failed for ${input.input}`);
             }
         }

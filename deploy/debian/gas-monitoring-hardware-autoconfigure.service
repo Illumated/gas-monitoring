@@ -1,0 +1,15 @@
+[Unit]
+Description=RINIR automatic Modbus hardware discovery and commissioning
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+Before=gas-monitoring.service
+ConditionPathExists=/var/lib/rinir-factory/provision.done
+
+[Service]
+Type=oneshot
+ExecStart=/opt/gas-monitoring/deploy/debian/hardware-autoconfigure.sh
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

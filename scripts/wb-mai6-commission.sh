@@ -8,7 +8,7 @@ evidence_dir="${WB_EVIDENCE_DIR:-./commissioning-evidence}"
 input_list="${WB_INPUTS:-IN1P,IN2P,IN3P}"
 sensor_type="${WB_SENSOR_TYPE:-4866}"
 scale_low="${WB_SCALE_LOW:-0}"
-scale_high="${WB_SCALE_HIGH:-160}"
+scale_high="${WB_SCALE_HIGH:-100}"
 
 if ! command -v mbpoll >/dev/null 2>&1; then
   echo "mbpoll is required" >&2

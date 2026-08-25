@@ -1,6 +1,21 @@
-# 06. Первичная настройка WB-MAI6
+# 06. Автоматическая настройка WB-MAI6
 
-Этап обязателен перед первым запуском Node-RED и повторяется после замены или сброса WB-MAI6. Node-RED не конфигурирует модуль и в штатной эксплуатации только читает пересчитанные значения.
+В штатной заводской установке вручную вводить Unit ID и запусать `mbpoll` не нужно. На первой загрузке `gas-monitoring-hardware-autoconfigure.service`:
+
+1. сканирует Unit ID `1…247` через `192.168.50.10:502`;
+2. требует ровно один WB-MAI6 и не более одного WB-MR3LV/I;
+3. настраивает IN1P…IN5P как `4–20 мА`, шкала `0…100`, а IN6P как сухой контакт;
+4. перечитывает записанные регистры и сохраняет evidence.
+
+```bash
+systemctl status gas-monitoring-hardware-autoconfigure.service --no-pager
+journalctl -u gas-monitoring-hardware-autoconfigure.service -b --no-pager
+ls -la /var/lib/rinir-factory/commissioning/
+```
+
+Поля Unit ID в «Сервис → Modbus-оборудование» меняют адреса опроса без перезапуска Node-RED. Они не перепрограммируют адрес в самом модуле.
+
+Ниже оставлена ручная процедура для диагностики, замены или сброса WB-MAI6.
 
 ## Физические входы
 
@@ -21,16 +36,16 @@ INxN: type = 4096*X+1025, low = 4096*X+1033, high = 4096*X+1035, value = 4096*X+
 | 1 | IN1N | 5121 | 5129 | 5131 | 5381 | Не назначено |
 | 2 | IN2P | 9216 | 9224 | 9226 | 9476 | AIR |
 | 2 | IN2N | 9217 | 9225 | 9227 | 9477 | Не назначено |
-| 3 | IN3P | 13312 | 13320 | 13322 | 13572 | N₂O |
+| 3 | IN3P | 13312 | 13320 | 13322 | 13572 | VAC |
 | 3 | IN3N | 13313 | 13321 | 13323 | 13573 | Не назначено |
-| 4 | IN4P | 17408 | 17416 | 17418 | 17668 | Резерв |
+| 4 | IN4P | 17408 | 17416 | 17418 | 17668 | N₂O (профили 4/5) |
 | 4 | IN4N | 17409 | 17417 | 17419 | 17669 | Не назначено |
-| 5 | IN5P | 21504 | 21512 | 21514 | 21764 | Резерв |
+| 5 | IN5P | 21504 | 21512 | 21514 | 21764 | CO₂ (профиль 5) |
 | 5 | IN5N | 21505 | 21513 | 21515 | 21765 | Не назначено |
-| 6 | IN6P | 25600 | 25608 | 25610 | 25860 | Резерв |
+| 6 | IN6P | 25600 | 25608 | 25610 | 25860 | Обратная связь клапанов, сухой контакт (опция) |
 | 6 | IN6N | 25601 | 25609 | 25611 | 25861 | Не назначено |
 
-Для каждого используемого входа записываются: тип `4866` (`0x1302`), нижняя граница `0`, верхняя граница `160`. Node-RED делит пересчитанное значение на 10 и показывает `0.0…16.0 bar`.
+Для газовых входов `IN1P…IN5P` записываются: тип `4866` (`0x1302`), нижняя граница `0`, верхняя граница `100`. Node-RED делит значение на 10 и показывает `0.0…10.0 bar`. Опциональный `IN6P` получает тип сухого контакта `5632` (`0x1600`): `0` — разомкнут/аварийный режим, `1` — замкнут/штатный режим.
 
 Регистры границ имеют формат `16-bit signed int`. Соседние регистры `0xX409` и `0xX40B` относятся к входу `INxN`, а не являются второй половиной 32-битного значения. Их нельзя обнулять как «старшее слово».
 
@@ -50,19 +65,19 @@ INxN: type = 4096*X+1025, low = 4096*X+1033, high = 4096*X+1035, value = 4096*X+
      --entrypoint node gas-monitoring-node-red:0.1.0 \
      /usr/src/node-red/tools/wb-mai6-commission.mjs \
      --read-only --host 192.168.50.10 --unit 65 \
-     --inputs IN1P,IN2P,IN3P --evidence /evidence
+     --profile gas-monitoring --evidence /evidence
    ```
 
    На Windows и Debian при установленном Node.js:
 
    ```powershell
-   node scripts/wb-mai6-commission.mjs --read-only --host 192.168.50.10 --unit 65 --inputs IN1P,IN2P,IN3P
+   node scripts/wb-mai6-commission.mjs --read-only --host 192.168.50.10 --unit 65 --profile gas-monitoring
    ```
 
    На Debian через `mbpoll`:
 
    ```bash
-   WB_HOST=192.168.50.10 WB_UNIT_ID=65 WB_INPUTS=IN1P,IN2P,IN3P ./scripts/wb-mai6-commission.sh --read-only
+   WB_HOST=192.168.50.10 WB_UNIT_ID=65 WB_INPUTS=IN1P,IN2P,IN3P,IN4P,IN5P,IN6P ./scripts/wb-mai6-commission.sh --read-only
    ```
 
 5. Проверить сохранённый файл в `commissioning-evidence/`.
@@ -76,17 +91,17 @@ INxN: type = 4096*X+1025, low = 4096*X+1033, high = 4096*X+1035, value = 4096*X+
      --entrypoint node gas-monitoring-node-red:0.1.0 \
      /usr/src/node-red/tools/wb-mai6-commission.mjs \
      --apply --confirm APPLY --host 192.168.50.10 --unit 65 \
-     --inputs IN1P,IN2P,IN3P --evidence /evidence
+     --profile gas-monitoring --evidence /evidence
    ```
 
    ```powershell
-   node scripts/wb-mai6-commission.mjs --apply --confirm APPLY --host 192.168.50.10 --unit 65 --inputs IN1P,IN2P,IN3P
+   node scripts/wb-mai6-commission.mjs --apply --confirm APPLY --host 192.168.50.10 --unit 65 --profile gas-monitoring
    ```
 
-7. `--apply` разрешён только с явным выбором `--inputs`, `--all-p` или `--all` и подтверждением `--confirm APPLY`. Скрипт сначала читает исходное состояние, пишет по три регистра каждого выбранного входа, читает их обратно и прекращает работу при несовпадении.
+7. `--apply` разрешён только с явным выбором `--profile`, `--inputs`, `--all-p` или `--all` и подтверждением `--confirm APPLY`. Профиль `gas-monitoring` пишет 4–20 мА/0…100 в IN1P…IN5P и сухой контакт `5632` в IN6P, затем проверяет чтение обратно.
 8. Обесточить и включить модуль, затем повторить `--read-only`. Настройки должны сохраниться.
-9. Подать эталонные 4, 12 и 20 мА на каждый вход. Ожидаемые пересчитанные значения: `0`, `80`, `160`.
-10. Только после этого запустить Node-RED и проверить `0.0`, `8.0`, `16.0 bar`, обрыв каждой петли и восстановление.
+9. Подать эталонные 4, 12 и 20 мА на каждый газовый вход. Ожидаемые значения: `0`, `50`, `100`. Для IN6P отдельно проверить замыкание (`1`) и размыкание (`0`).
+10. Только после этого запустить Node-RED и проверить `0.0`, `5.0`, `10.0 bar`, обрыв каждой петли и восстановление.
 
    ```bash
    sudo systemctl start gas-monitoring.service

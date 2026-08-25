@@ -33,22 +33,27 @@ assert.equal(client.commandDelay, "${MODBUS_COMMAND_DELAY_MS}");
 const expectedRegisters = new Map([
     ["oxygen", 5380],
     ["air", 9476],
-    ["n2o", 13572]
+    ["vacuum", 13572],
+    ["n2o", 17668],
+    ["co2", 21764],
+    ["valvefeedback", 25860]
 ]);
 assert.equal(nodes.filter((node) => node.type === "modbus-read").length, 0);
 const pollCycle = byId.get("poll-cycle");
-const sequencer = byId.get("poll-sequencer");
+const pollBuilder = byId.get("poll-builder");
+const pollDelay = byId.get("poll-delay");
+const pollGetter = byId.get("poll-getter");
 assert.equal(pollCycle.type, "inject");
-assert.equal(pollCycle.repeat, "1");
-assert.equal(sequencer.type, "modbus-flex-sequencer");
-assert.equal(sequencer.server, client.id);
-assert.deepEqual(sequencer.sequences.map((item) => item.name), [...expectedRegisters.keys()]);
-for (const sequence of sequencer.sequences) {
-    assert.equal(sequence.fc, "FC4");
-    assert.equal(sequence.unitid, "65");
-    assert.equal(Number(sequence.address), expectedRegisters.get(sequence.name));
-    assert.equal(sequence.quantity, "1");
+assert.equal(pollCycle.repeat, "2");
+assert.equal(pollBuilder.type, "function");
+assert.equal(pollDelay.type, "delay");
+assert.equal(pollDelay.nbRateUnits, "0.3");
+assert.equal(pollGetter.type, "modbus-flex-getter");
+assert.equal(pollGetter.server, client.id);
+for (const [name, address] of expectedRegisters) {
+    assert.match(pollBuilder.func, new RegExp(`\\["${name}",${address}\\]`));
 }
+assert.match(pollBuilder.func, /settings\.valves\?\.wbMai6UnitId/);
 
 const normalize = byId.get("fn-normalize");
 const normalizeFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", normalize.func);
@@ -63,6 +68,21 @@ globalThis.flow = {
     get(key) { return flowStore[key]; },
     set(key, value) { flowStore[key] = value; }
 };
+flowStore.runtimeSettings = {
+    gases: [
+        { key: "oxygen", enabled: true },
+        { key: "air", enabled: false },
+        { key: "vacuum", enabled: true },
+        { key: "n2o", enabled: false },
+        { key: "co2", enabled: true }
+    ],
+    valves: { wbMai6UnitId: 77 }
+};
+const pollBuilderFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", pollBuilder.func);
+const dynamicRequests = pollBuilderFn({}, nodeMock, contextMock, { get() { return ""; } });
+assert.deepEqual(dynamicRequests[0].map((msg) => msg.topic), ["oxygen", "vacuum", "co2", "valvefeedback"]);
+assert.ok(dynamicRequests[0].every((msg) => msg.payload.unitid === 77));
+delete flowStore.runtimeSettings;
 const envMock = {
     get(name) {
         return {
@@ -73,7 +93,7 @@ const envMock = {
 };
 const timerMock = () => ({ testTimer: true });
 
-for (const gas of ["oxygen", "air", "n2o"]) {
+for (const gas of ["oxygen", "air", "vacuum", "n2o", "co2"]) {
     for (const [raw, value, status] of [
         [0, 0, "alarm"],
         [35, 3.5, "warn"],
@@ -164,8 +184,10 @@ const stateNode = byId.get("fn-state");
 const stateFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", stateNode.func);
 let persistedState = {
     oxygen: { key: "oxygen", code: "O₂", name: "Кислород", value: 5, status: "ok", updatedAt: Date.now() - 30000 },
-    air: { key: "air", code: "AIR", name: "Медицинский воздух", value: null, status: "nodata", updatedAt: null },
-    n2o: { key: "n2o", code: "N₂O", name: "Закись азота", value: null, status: "nodata", updatedAt: null }
+    air: { key: "air", code: "AIR", name: "Сжатый воздух", value: null, status: "nodata", updatedAt: null },
+    vacuum: { key: "vacuum", code: "VAC", name: "Вакуум", value: null, status: "nodata", updatedAt: null },
+    n2o: { key: "n2o", code: "N₂O", name: "Закись азота", value: null, status: "nodata", updatedAt: null },
+    co2: { key: "co2", code: "CO₂", name: "Углекислый газ", value: null, status: "nodata", updatedAt: null }
 };
 const stateStore = {
     gasState: persistedState,
@@ -196,6 +218,27 @@ stateStore.gasState.oxygen = {
 stateStore.reportedStatus.oxygen = "ok";
 const freshResult = stateFn({}, {}, stateContext, envMock, timerMock, () => {});
 assert.equal(freshResult[0].payload.gases[0].status, "ok", "value younger than stale timeout must remain visible");
+
+for (const key of ["oxygen", "air", "vacuum", "n2o", "co2"]) {
+    stateStore.gasState[key] = { key, name: key, value: 5, status: "ok", updatedAt: Date.now() };
+}
+stateStore.gasState.oxygen.status = "alarm";
+flowStore.runtimeSettings = {
+    channelCount: 3,
+    valves: { enabled: true, controlMode: "automatic", triggerGases: ["oxygen"], triggerOnNoData: false, activationDelaySeconds: 0, recoveryDelaySeconds: 0, feedbackTimeoutSeconds: 5, activeValue: 1, unitId: 66, coilAddress: 0 }
+};
+flowStore.valveFeedback = { value: 0, updatedAt: Date.now() };
+delete stateStore.valveDesired;
+delete stateStore.valveCommanded;
+const valveTripResult = stateFn({}, {}, stateContext, envMock, timerMock, () => {});
+assert.equal(valveTripResult[0].payload.valves.status, "emergency");
+assert.equal(valveTripResult[2].payload.unitid, 66);
+assert.equal(valveTripResult[2].payload.address, 0);
+assert.equal(valveTripResult[2].payload.value, 1, "alarm must hold K1 in its active state");
+stateStore.gasState.oxygen.status = "ok";
+const valveRecoveryResult = stateFn({}, {}, stateContext, envMock, timerMock, () => {});
+assert.equal(valveRecoveryResult[2].payload.value, 0, "automatic recovery must release K1");
+flowStore.runtimeSettings = {};
 
 delete normalizeStore.classificationStatus;
 const sequencerResult = normalizeFn(
@@ -260,7 +303,8 @@ for (const [event, expected] of [
     [{ kind: "gas-state-change", name: "Кислород", value: 2.8, from: "warn", to: "alarm", updatedAt: Date.now() }, /🔴 АВАРИЯ/],
     [{ kind: "gas-state-change", name: "Медицинский воздух", value: null, lastValue: 5.1, from: "ok", to: "nodata", reason: "stale", updatedAt: Date.now() }, /Последнее значение: 5,1 бар[\s\S]*нет достоверных данных более 4 секунд/],
     [{ kind: "gas-state-change", name: "Медицинский воздух", value: 5.2, from: "nodata", to: "ok", durationMs: 78000, updatedAt: Date.now() }, /✅ ВОССТАНОВЛЕНО[\s\S]*1 мин 18 сек/],
-    [{ kind: "gas-reminder", name: "Закись азота", value: 6.7, from: "alarm", to: "alarm", updatedAt: Date.now() }, /⚠️ НАПОМИНАНИЕ/]
+    [{ kind: "gas-reminder", name: "Закись азота", value: 6.7, from: "alarm", to: "alarm", updatedAt: Date.now() }, /⚠️ НАПОМИНАНИЕ/],
+    [{ kind: "valve-state-change", name: "Клапаны", value: 0, from: "normal", to: "emergency", updatedAt: Date.now() }, /🔴 КЛАПАНЫ: АВАРИЙНЫЙ РЕЖИМ[\s\S]*Обратная связь: 0 — аварийный режим/]
 ]) {
     const result = maxFn({ payload: event }, { error() {} }, contextMock, maxEnv);
     assert.match(result.payload.text, expected);
@@ -308,12 +352,13 @@ assert.match(byId.get("ui-monitor").format, /<h1>Контроль давлени
 assert.match(byId.get("ui-monitor").format, /class="gm-clock"/, "clock must use a dedicated status-style panel");
 assert.match(byId.get("ui-monitor").format, />\.v-card>\.v-card-text\{height:100%!important;padding:0!important\}/, "FlowFuse group padding must not create an outer frame");
 assert.match(byId.get("ui-monitor").format, /html:has\(\.gm-page\),body:has\(\.gm-page\)\{overflow:hidden!important\}/, "desktop monitoring must not show an empty document scrollbar");
-assert.match(byId.get("ui-monitor").format, /\.gm-value strong\{color:#eef6ff;font-size:clamp\(72px,8vw,124px\)/, "pressure value must use the enlarged responsive type scale");
+assert.match(byId.get("ui-monitor").format, /\.gm-value strong\{color:#eef6ff;font-size:clamp\(58px,7vw,112px\)/, "pressure value must use the enlarged responsive type scale");
 assert.match(byId.get("ui-monitor").format, /\.gm-card\.is-alarm \.gm-value strong\{color:#ff7080\}/, "pressure value must use the channel state color");
-assert.match(byId.get("ui-monitor").format, /\.gm-badge\{min-width:112px;[\s\S]*font-size:13px/, "channel status badge must be enlarged");
+assert.match(byId.get("ui-monitor").format, /\.gm-badge\{min-width:110px;[\s\S]*font-size:12px/, "channel status badge must remain readable in five-channel mode");
 assert.match(byId.get("ui-monitor").format, /\.gm-card-head p\{margin:0;color:#64b9ea;font-size:20px/, "O2, AIR and N2O channel codes must be enlarged");
 assert.match(byId.get("ui-monitor").format, /\.gm-card\.is-alarm\{border-top-color:#ff5364;animation:gm-alarm-pulse 2\.4s ease-in-out infinite\}/, "alarm card must use the soft pulse animation");
 assert.match(byId.get("ui-monitor").format, /@media\(prefers-reduced-motion:reduce\)\{\.gm-card\.is-alarm\{animation:none;/, "alarm emphasis must respect reduced-motion accessibility");
+assert.match(byId.get("ui-engineering").format, /\{\{gas\.name\}\} — \{\{gas\.input\}\}/, "valve triggers must show gas names with WB-MAI6 input numbers");
 
 const engineeringNode = byId.get("fn-engineering-manager");
 const engineeringFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", engineeringNode.func);
@@ -336,6 +381,16 @@ const engineeringEnv = {
         }[name] ?? "";
     }
 };
+delete flowStore.runtimeSettings;
+const defaultSettingsResult = engineeringFn(
+    { _client: { socketId: "client-defaults" }, payload: { action: "engineering-load" } },
+    nodeMock, engineeringContext, engineeringEnv
+);
+assert.deepEqual(
+    defaultSettingsResult[0].payload.settings.valves.triggerGases,
+    ["oxygen", "air", "vacuum", "n2o", "co2"],
+    "all five gas channels must be available as default valve triggers"
+);
 const emptyRegistryResult = engineeringFn(
     { _client: { socketId: "client-1" }, payload: { action: "engineering-unlock", code: "operator-test-code" } },
     nodeMock, engineeringContext, engineeringEnv
@@ -367,12 +422,16 @@ const candidateSettings = {
     siteName: "Городская больница",
     locationName: "Реанимация, 2 этаж",
     gases: [
-        { key: "oxygen", name: "Кислород", warnLow: 3.5, okLow: 4.1, okHigh: 6, warnHigh: 6.5 },
-        { key: "air", name: "Медицинский воздух", warnLow: 3.5, okLow: 4, okHigh: 6, warnHigh: 6.5 },
-        { key: "n2o", name: "Закись азота", warnLow: 3.5, okLow: 4, okHigh: 6, warnHigh: 6.5 }
+        { key: "oxygen", code: "O₂", input: "IN1P", enabled: true, name: "Кислород", warnLow: 3.5, okLow: 4.1, okHigh: 6, warnHigh: 6.5 },
+        { key: "air", code: "AIR", input: "IN2P", enabled: true, name: "Сжатый воздух", warnLow: 3.5, okLow: 4, okHigh: 6, warnHigh: 6.5 },
+        { key: "vacuum", code: "VAC", input: "IN3P", enabled: true, name: "Вакуум", warnLow: 3.5, okLow: 4, okHigh: 6, warnHigh: 6.5 },
+        { key: "n2o", code: "N₂O", input: "IN4P", enabled: true, name: "Закись азота", warnLow: 3.5, okLow: 4, okHigh: 6, warnHigh: 6.5 },
+        { key: "co2", code: "CO₂", input: "IN5P", enabled: true, name: "Углекислый газ", warnLow: 3.5, okLow: 4, okHigh: 6, warnHigh: 6.5 }
     ],
-    displayMax: 8,
-    hysteresis: 0.1
+    channelCount: 5,
+    displayMax: 10,
+    hysteresis: 0.1,
+    valves: { enabled: false, controlMode: "monitor", triggerGases: [], triggerOnNoData: false, activationDelaySeconds: 0, recoveryDelaySeconds: 5, feedbackTimeoutSeconds: 5 }
 };
 const saveResult = engineeringFn(
     { _client: { socketId: "client-1" }, payload: { action: "engineering-save", operator: "Подменённое имя", settings: candidateSettings } },
@@ -395,8 +454,10 @@ const afterRestartLoad = recreatedEngineeringFn(
     nodeMock, { get() {}, set() {} }, engineeringEnv
 );
 assert.equal(afterRestartLoad[0].payload.settings.gases[0].okLow, 4.1, "runtime settings must be loaded from persistent flow context after function recreation");
+assert.equal(afterRestartLoad[0].payload.settings.gases.length, 5, "older settings must be migrated to the five-channel schema");
+assert.equal(afterRestartLoad[0].payload.settings.channelCount, 5);
 const rejectedSettings = structuredClone(candidateSettings);
-rejectedSettings.gases[0].warnHigh = 9;
+rejectedSettings.gases[0].warnHigh = 10;
 const rejectedResult = engineeringFn(
     { _client: { socketId: "client-1" }, payload: { action: "engineering-save", settings: rejectedSettings } },
     nodeMock, engineeringContext, engineeringEnv

@@ -1,5 +1,5 @@
-const channels = 3;
-const pollIntervalSeconds = 1;
+const channels = 5;
+const pollIntervalSeconds = 2;
 const retentionDays = 365;
 const secondsPerDay = 86400;
 const pointsPerYear = channels * secondsPerDay * retentionDays / pollIntervalSeconds;
@@ -12,7 +12,7 @@ const scenarios = bytesPerPointScenarios.map((bytesPerPoint) => ({
 }));
 
 const result = {
-    model: "three gas fields written independently every second",
+    model: "up to five gas fields written independently every two seconds",
     channels,
     pollIntervalSeconds,
     retentionDays,

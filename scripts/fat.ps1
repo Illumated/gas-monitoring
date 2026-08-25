@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet("status", "normal", "zero", "warning", "oxygenalarm", "alarm", "nodata")]
+    [ValidateSet("status", "normal", "zero", "warning", "oxygenalarm", "alarm", "valvealarm", "nodata")]
     [string]$Scenario = "status"
 )
 
@@ -18,7 +18,9 @@ if ($Scenario -eq "status") {
 $names = @{
     "5380" = "O2"
     "9476" = "AIR"
-    "13572" = "N2O"
+    "13572" = "VAC"
+    "17668" = "N2O"
+    "21764" = "CO2"
 }
 
 $rows = foreach ($property in $result.registers.PSObject.Properties | Where-Object { $names.ContainsKey($_.Name) }) {

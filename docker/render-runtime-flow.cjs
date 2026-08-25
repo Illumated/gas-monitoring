@@ -35,12 +35,13 @@ if (!/^[a-zA-Z0-9.-]+$/.test(host)) {
 
 const port = integer("MODBUS_PORT", 502, 1, 65535);
 const unitId = integer("MODBUS_UNIT_ID", 65, 1, 247);
-const pollMs = integer("MODBUS_POLL_INTERVAL_MS", 1000, 500, 3600000);
+const pollMs = integer("MODBUS_POLL_INTERVAL_MS", 2000, 500, 3600000);
 const commandDelayMs = integer("MODBUS_COMMAND_DELAY_MS", 300, 1, 10000);
-const staleMs = integer("GAS_STALE_TIMEOUT_MS", 4000, 1500, 3600000);
+const staleMs = integer("GAS_STALE_TIMEOUT_MS", 6000, 1500, 3600000);
 
-if (commandDelayMs * 3 >= pollMs) {
-    throw new Error("MODBUS_COMMAND_DELAY_MS * 3 must be less than MODBUS_POLL_INTERVAL_MS");
+const sequenceCount = 6;
+if (commandDelayMs * sequenceCount >= pollMs) {
+    throw new Error(`MODBUS_COMMAND_DELAY_MS * ${sequenceCount} must be less than MODBUS_POLL_INTERVAL_MS`);
 }
 if (staleMs < pollMs * 3) {
     throw new Error("GAS_STALE_TIMEOUT_MS must be at least MODBUS_POLL_INTERVAL_MS * 3");
@@ -56,13 +57,14 @@ client.unit_id = unitId;
 client.commandDelay = String(commandDelayMs);
 
 const pollCycle = flow.find((node) => node.id === "poll-cycle");
-const sequencer = flow.find((node) => node.id === "poll-sequencer");
-if (!pollCycle || !sequencer) {
-    throw new Error("poll-cycle or poll-sequencer is missing");
+const pollBuilder = flow.find((node) => node.id === "poll-builder");
+const pollDelay = flow.find((node) => node.id === "poll-delay");
+const pollGetter = flow.find((node) => node.id === "poll-getter");
+if (!pollCycle || !pollBuilder || !pollDelay || !pollGetter) {
+    throw new Error("dynamic polling nodes are missing");
 }
 pollCycle.repeat = String(pollMs / 1000);
-for (const sequence of sequencer.sequences) {
-    sequence.unitid = String(unitId);
-}
+pollDelay.nbRateUnits = String(commandDelayMs / 1000);
+pollDelay.rateUnits = "second";
 
 fs.writeFileSync(target, JSON.stringify(flow, null, 2) + "\n");

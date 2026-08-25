@@ -2,7 +2,7 @@
   "name": "gas-monitoring",
   "version": "0.1.0",
   "private": true,
-  "description": "Node-RED monitoring of O2, AIR and N2O pressure",
+  "description": "Node-RED monitoring of up to five medical gas pressure channels",
   "license": "UNLICENSED",
   "engines": {
     "node": ">=24"

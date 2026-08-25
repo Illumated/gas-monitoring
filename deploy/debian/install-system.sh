@@ -98,11 +98,12 @@ REMOTE_INITIAL_PASSWORD=$remote_password
 MODBUS_HOST=${MODBUS_DEVICE_ADDRESS:-192.168.50.10}
 MODBUS_PORT=502
 MODBUS_UNIT_ID=65
-MODBUS_POLL_INTERVAL_MS=1000
+VALVE_RELAY_UNIT_ID=66
+MODBUS_POLL_INTERVAL_MS=2000
 MODBUS_COMMAND_DELAY_MS=300
-GAS_STALE_TIMEOUT_MS=4000
+GAS_STALE_TIMEOUT_MS=6000
 GAS_HYSTERESIS_BAR=0.1
-GAS_DISPLAY_MAX_BAR=8
+GAS_DISPLAY_MAX_BAR=10
 OXYGEN_WARN_LOW_BAR=3.5
 OXYGEN_OK_LOW_BAR=4
 OXYGEN_OK_HIGH_BAR=6
@@ -115,6 +116,14 @@ N2O_WARN_LOW_BAR=3.5
 N2O_OK_LOW_BAR=4
 N2O_OK_HIGH_BAR=6
 N2O_WARN_HIGH_BAR=6.5
+VACUUM_WARN_LOW_BAR=3.5
+VACUUM_OK_LOW_BAR=4
+VACUUM_OK_HIGH_BAR=6
+VACUUM_WARN_HIGH_BAR=6.5
+CO2_WARN_LOW_BAR=3.5
+CO2_OK_LOW_BAR=4
+CO2_OK_HIGH_BAR=6
+CO2_WARN_HIGH_BAR=6.5
 MAX_NOTIFICATIONS_ENABLED=false
 MAX_API_URL=https://platform-api2.max.ru
 MAX_BOT_TOKEN=
@@ -206,6 +215,9 @@ EOF
     /etc/systemd/system/gas-monitoring.service
   install -m 0644 "$SOURCE_DIR/deploy/debian/gas-monitoring-acceptance.service" \
     /etc/systemd/system/gas-monitoring-acceptance.service
+  install -m 0644 "$SOURCE_DIR/deploy/debian/gas-monitoring-hardware-autoconfigure.service" \
+    /etc/systemd/system/gas-monitoring-hardware-autoconfigure.service
+  chmod 0755 "$APP_DIR/deploy/debian/hardware-autoconfigure.sh"
   install -m 0644 "$SOURCE_DIR/deploy/debian/nginx-gas-monitoring.conf" \
     /etc/nginx/sites-available/gas-monitoring
   install -m 0755 "$SOURCE_DIR/deploy/debian/nftables.conf" /etc/nftables.conf
@@ -216,6 +228,7 @@ EOF
   systemctl daemon-reload
   systemctl enable docker.service salt-minion.service lightdm.service
   systemctl enable gas-monitoring.service gas-monitoring-acceptance.service \
+    gas-monitoring-hardware-autoconfigure.service \
     nginx.service nftables.service
 }
 

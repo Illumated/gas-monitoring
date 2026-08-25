@@ -283,7 +283,9 @@ sudo /opt/gas-monitoring/deploy/debian/acceptance.sh
 
 Проверяются Debian/architecture, hostname, обе сетевые роли, отсутствие default route на Modbus LAN, Salt, Docker, Compose, nginx, kiosk, firewall, health endpoints и отсутствие LAN-публикации портов `1880/8086`. Отчёт сохраняется в `/var/lib/rinir-factory/acceptance/`.
 
-Настройка цепочки выполняется позднее по [05 — USR‑DR134](05-usr-dr134-commissioning.md) и [06 — WB‑MAI6](06-wb-mai6-commissioning.md); она не входит в offline OS installation.
+После второй загрузки `gas-monitoring-hardware-autoconfigure.service` сканирует Unit ID `1…247`, настраивает единственный WB-MAI6 и сохраняет найденные Unit ID. Допустимы ровно один WB-MAI6 и ноль или один WB-MR3LV/I. Evidence сохраняется в `/var/lib/rinir-factory/commissioning/`.
+
+Если шлюз или WB-MAI6 недоступен, Dashboard запустится с состоянием «НЕТ ДАННЫХ». Причина видна в `journalctl -u gas-monitoring-hardware-autoconfigure.service -b`.
 
 ## Официальные источники версий
 

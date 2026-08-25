@@ -22,10 +22,10 @@ if (has("--help")) {
     console.log(`Read-only WB-MAI6 hardware FAT
 
 Usage:
-  node scripts/hardware-fat.mjs --inventory [--inputs IN1P,IN2P,IN3P]
+  node scripts/hardware-fat.mjs --inventory [--inputs IN1P,IN2P,IN3P,IN4P,IN5P]
   node scripts/hardware-fat.mjs --point --input IN1P --current-ma 4 --tolerance-raw 1
   node scripts/hardware-fat.mjs --break --input IN1P
-  node scripts/hardware-fat.mjs --soak --inputs IN1P,IN2P,IN3P --duration-seconds 3600 --max-gap-ms 4000
+  node scripts/hardware-fat.mjs --soak --inputs IN1P,IN2P,IN3P,IN4P,IN5P --duration-seconds 3600 --max-gap-ms 6000
 
 Options:
   --host HOST               default 192.168.50.10
@@ -52,7 +52,7 @@ const unit = integer("--unit", 65, 1, 247);
 const operator = String(valueOf("--operator", "")).trim();
 const deviceSerial = String(valueOf("--device-serial", "")).trim();
 const evidenceDirectory = resolve(valueOf("--evidence", "commissioning-evidence"));
-const selectedInputs = String(valueOf("--inputs", "IN1P,IN2P,IN3P"))
+const selectedInputs = String(valueOf("--inputs", "IN1P,IN2P,IN3P,IN4P,IN5P"))
     .split(",")
     .map((input) => input.trim().toUpperCase())
     .filter(Boolean);
@@ -80,7 +80,7 @@ if (mode === "point") {
     if (![4, 12, 20].includes(currentMa)) {
         throw new Error("--current-ma must be 4, 12 or 20");
     }
-    toleranceRaw = integer("--tolerance-raw", undefined, 0, 160);
+    toleranceRaw = integer("--tolerance-raw", undefined, 0, 100);
 }
 
 const samples = integer("--samples", 10, 1, 1000);
@@ -201,7 +201,7 @@ try {
         const readErrors = evidence.readings.filter((reading) => reading.error).length;
         evidence.statistics = values.length ? summary(values) : null;
         if (mode === "point") {
-            const expectedRaw = (currentMa - 4) * 10;
+            const expectedRaw = (currentMa - 4) * 100 / 16;
             const validValues = values.filter((value) => !invalidCodes.has(value));
             evidence.acceptance = { expectedRaw, toleranceRaw };
             evidence.result = readErrors === 0

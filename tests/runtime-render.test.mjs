@@ -21,9 +21,9 @@ try {
                 MODBUS_HOST: "modbus-simulator",
                 MODBUS_PORT: "1502",
                 MODBUS_UNIT_ID: "65",
-                MODBUS_POLL_INTERVAL_MS: "1000",
+                MODBUS_POLL_INTERVAL_MS: "2000",
                 MODBUS_COMMAND_DELAY_MS: "300",
-                GAS_STALE_TIMEOUT_MS: "4000",
+                GAS_STALE_TIMEOUT_MS: "6000",
                 MONITOR_ID: "RINIR-A1B2C3"
             }
         }
@@ -38,11 +38,10 @@ try {
     assert.equal(client.commandDelay, "300");
 
     const pollCycle = nodes.find((node) => node.id === "poll-cycle");
-    const sequencer = nodes.find((node) => node.id === "poll-sequencer");
-    assert.equal(pollCycle.repeat, "1");
-    for (const sequence of sequencer.sequences) {
-        assert.equal(sequence.unitid, "65");
-    }
+    const pollDelay = nodes.find((node) => node.id === "poll-delay");
+    assert.equal(pollCycle.repeat, "2");
+    assert.equal(pollDelay.nbRateUnits, "0.3");
+    assert.equal(pollDelay.rateUnits, "second");
 
     const invalidQueue = spawnSync(
         process.execPath,
@@ -51,15 +50,15 @@ try {
             encoding: "utf8",
             env: {
                 ...process.env,
-                MODBUS_POLL_INTERVAL_MS: "1000",
+                MODBUS_POLL_INTERVAL_MS: "2000",
                 MODBUS_COMMAND_DELAY_MS: "400",
-                GAS_STALE_TIMEOUT_MS: "4000",
+                GAS_STALE_TIMEOUT_MS: "6000",
                 MONITOR_ID: "RINIR-A1B2C3"
             }
         }
     );
     assert.notEqual(invalidQueue.status, 0);
-    assert.match(invalidQueue.stderr, /MODBUS_COMMAND_DELAY_MS \* 3/);
+    assert.match(invalidQueue.stderr, /MODBUS_COMMAND_DELAY_MS \* 6/);
 
     const invalidStale = spawnSync(
         process.execPath,
@@ -68,9 +67,9 @@ try {
             encoding: "utf8",
             env: {
                 ...process.env,
-                MODBUS_POLL_INTERVAL_MS: "1000",
+                MODBUS_POLL_INTERVAL_MS: "2000",
                 MODBUS_COMMAND_DELAY_MS: "300",
-                GAS_STALE_TIMEOUT_MS: "2000",
+                GAS_STALE_TIMEOUT_MS: "5000",
                 MONITOR_ID: "RINIR-A1B2C3"
             }
         }
@@ -85,9 +84,9 @@ try {
             encoding: "utf8",
             env: {
                 ...process.env,
-                MODBUS_POLL_INTERVAL_MS: "1000",
+                MODBUS_POLL_INTERVAL_MS: "2000",
                 MODBUS_COMMAND_DELAY_MS: "300",
-                GAS_STALE_TIMEOUT_MS: "4000",
+                GAS_STALE_TIMEOUT_MS: "6000",
                 MONITOR_ID: "РЕАНИМАЦИЯ 2"
             }
         }

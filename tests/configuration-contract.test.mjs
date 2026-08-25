@@ -25,7 +25,7 @@ assert.doesNotMatch(configuration, /set-rinir-hostname/);
 assert.match(engineering, /Название больницы/);
 assert.match(engineering, /Расположение/);
 assert.match(settings, /contextStorage[\s\S]*localfilesystem/, "runtime settings must use persistent Node-RED context");
-assert.equal(capacity.pointsPerYear, 94_608_000);
+assert.equal(capacity.pointsPerYear, 78_840_000);
 assert.ok(capacity.recommendedInfluxVolumeGiB >= capacity.compressedDataScenarios.at(-1).gib * 3);
 
 console.log("Configuration, persistent context and annual capacity contracts passed");

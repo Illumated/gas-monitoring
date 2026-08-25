@@ -51,7 +51,7 @@ http://127.0.0.1:1880/dashboard/history
 
 ## Стендовый прогон без оборудования
 
-FAT-профиль запускает отдельный Modbus TCP simulator. Node-RED при этом продолжает использовать штатный последовательный `modbus-flex-sequencer`, без внутренней подстановки значений.
+FAT-профиль запускает отдельный Modbus TCP simulator. Node-RED использует ту же динамическую сериализованную очередь `modbus-flex-getter`, что и production: Unit ID и набор активных входов берутся из persistent-настроек, запросы идут по одному с задержкой `300 ms`.
 
 Из корня репозитория запустить весь стенд одной командой:
 
@@ -85,7 +85,7 @@ FAT-профиль запускает отдельный Modbus TCP simulator. N
 
 ## Production
 
-Debian 13, systemd, kiosk и production override описаны в [23 — Debian runtime](23-debian-13.md). Первичная настройка оборудования выполняется по [05 — USR‑DR134](05-usr-dr134-commissioning.md) и [06 — WB‑MAI6](06-wb-mai6-commissioning.md) до запуска Node-RED.
+Debian 13, systemd, kiosk и production override описаны в [23 — Debian runtime](23-debian-13.md). При заводском развёртывании `gas-monitoring-hardware-autoconfigure.service` на второй загрузке находит Unit ID, настраивает WB-MAI6 и сохраняет evidence. Ручные процедуры [05](05-usr-dr134-commissioning.md) и [06](06-wb-mai6-commissioning.md) используются для проверки, замены и диагностики.
 
 ## Остановка
 
