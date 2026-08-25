@@ -58,6 +58,8 @@ for (const expected of [
 
 assert.match(preseed, /partman\/early_command/);
 assert.match(preseed, /auto-install\/enable boolean true/);
+assert.match(preseed, /^#_preseed_V1/m);
+assert.match(preseed, /auto-install\/cloak_initrd_preseed boolean true/);
 assert.match(preseed, /debconf\/priority select critical/);
 assert.match(preseed, /netcfg\/enable boolean false/);
 assert.match(preseed, /\/bin\/rinir-select-install-disk/);
@@ -77,11 +79,15 @@ assert.match(grubBoot, /set timeout=10/);
 assert.match(grubBoot, /search --no-floppy --file[\s\S]*install\.done/);
 assert.match(grubBoot, /configfile \/boot\/grub\/grub\.cfg/);
 assert.match(grubBoot, /auto=true priority=critical/);
+assert.match(grubBoot, /file=\/cdrom\/preseed\.cfg/);
 assert.match(isolinuxBoot, /default rinir-auto/);
 assert.match(isolinuxBoot, /timeout 100/);
 assert.match(isolinuxBoot, /auto=true priority=critical/);
+assert.match(isolinuxBoot, /file=\/cdrom\/preseed\.cfg/);
 assert.match(isoBuildScript, /factory\/boot\/grub\.cfg[\s\S]*\/boot\/grub\/grub\.cfg/);
 assert.match(isoBuildScript, /factory\/boot\/isolinux\.cfg[\s\S]*\/isolinux\/isolinux\.cfg/);
+assert.match(isoBuildScript, /factory\/preseed\.cfg[\s\S]*\/preseed\.cfg/);
+assert.match(isoBuildScript, /initrd-result\.gz[\s\S]*cpio -id --quiet preseed\.cfg[\s\S]*cmp .*preseed\.cfg/);
 assert.match(isoBuildScript, /cmp .*grub-result\.cfg/);
 assert.match(provisioning, /sha256sum --check SHA256SUMS/);
 assert.match(provisioning, /apt-mark hold[\s\S]*salt-common salt-minion/);

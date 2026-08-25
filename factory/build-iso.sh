@@ -51,15 +51,25 @@ xorriso \
   -outdev "$OUTPUT_ISO" \
   -boot_image any replay \
   -map "$work_dir/initrd-rinir.gz" /install.amd/initrd.gz \
+  -map "$REPO_DIR/factory/preseed.cfg" /preseed.cfg \
   -map "$REPO_DIR/factory/boot/grub.cfg" /boot/grub/grub.cfg \
   -map "$REPO_DIR/factory/boot/isolinux.cfg" /isolinux/isolinux.cfg \
   -map "$BUNDLE_DIR" /factory \
   -commit
 
 xorriso -osirrox on -indev "$OUTPUT_ISO" \
+  -extract /preseed.cfg "$work_dir/preseed-result.cfg" \
+  -extract /install.amd/initrd.gz "$work_dir/initrd-result.gz" \
   -extract /boot/grub/grub.cfg "$work_dir/grub-result.cfg" \
   -extract /isolinux/isolinux.cfg "$work_dir/isolinux-result.cfg"
+cmp "$REPO_DIR/factory/preseed.cfg" "$work_dir/preseed-result.cfg"
 cmp "$REPO_DIR/factory/boot/grub.cfg" "$work_dir/grub-result.cfg"
 cmp "$REPO_DIR/factory/boot/isolinux.cfg" "$work_dir/isolinux-result.cfg"
+install -d "$work_dir/initrd-result"
+(
+  cd "$work_dir/initrd-result"
+  gzip -dc "$work_dir/initrd-result.gz" | cpio -id --quiet preseed.cfg
+  cmp "$REPO_DIR/factory/preseed.cfg" preseed.cfg
+)
 sha256sum "$OUTPUT_ISO" >"$OUTPUT_ISO.sha256"
 echo "Autonomous installer ISO created: $OUTPUT_ISO"
