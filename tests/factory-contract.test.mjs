@@ -89,7 +89,7 @@ assert.match(grubBoot, /set timeout=10/);
 assert.match(grubBoot, /search --no-floppy --file[\s\S]*install\.done/);
 assert.match(grubBoot, /configfile \/boot\/grub\/grub\.cfg/);
 assert.match(grubBoot, /set timeout=30/);
-assert.match(grubBoot, /полностью стереть диск и переустановить RINIR/);
+assert.match(grubBoot, /VNIMANIE: polnostyu steret disk i pereustanovit RINIR/);
 assert.match(grubBoot, /rinir_force_reinstall=true/);
 assert.match(grubBoot, /auto=true priority=critical/);
 assert.match(grubBoot, /file=\/cdrom\/preseed\.cfg/);

@@ -14,7 +14,7 @@ for partition in $(list-devices partition); do
     if [ -e "$scan_dir/var/lib/rinir-factory/install.done" ]; then
       umount "$scan_dir"
       if [ "$force_reinstall" != true ]; then
-        echo "RINIR уже установлен; очистка внутреннего диска запрещена" >/dev/tty1
+        echo "RINIR uzhe ustanovlen; ochistka vnutrennego diska zapreshchena" >/dev/tty1
         sleep 10
         poweroff -f
         exit 1
