@@ -31,7 +31,7 @@ async function waitForServer() {
             const response = await fetch(`http://127.0.0.1:${port}/health`);
             if (response.ok) return;
         } catch {
-            // Server is still starting.
+            // Сервер ещё запускается.
         }
         await new Promise((resolve) => setTimeout(resolve, 50));
     }
@@ -92,4 +92,3 @@ async function api(pathname, options = {}) {
     console.error(error);
     process.exitCode = 1;
 });
-

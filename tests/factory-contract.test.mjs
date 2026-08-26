@@ -22,7 +22,8 @@ const [
     windowsContainer,
     grubBoot,
     isolinuxBoot,
-    diskSelector
+    diskSelector,
+    acceptance
 ] = await Promise.all([
     read("../factory/versions.env"),
     read("../factory/preseed.cfg"),
@@ -43,7 +44,8 @@ const [
     read("../factory/build-windows-container.sh"),
     read("../factory/boot/grub.cfg"),
     read("../factory/boot/isolinux.cfg"),
-    read("../factory/select-install-disk.sh")
+    read("../factory/select-install-disk.sh"),
+    read("../deploy/debian/acceptance.sh")
 ]);
 
 for (const expected of [
@@ -118,9 +120,18 @@ assert.match(nginx, /auth_request \/__auth/);
 assert.match(nginx, /127\.0\.0\.1:18082\/verify/);
 assert.match(nginx, /proxy_pass http:\/\/127\.0\.0\.1:1880/);
 assert.match(firewall, /iifname "rinir-mgmt" tcp dport 443 accept/);
+assert.match(firewall, /iifname "rinir-mgmt" tcp dport 22 accept/);
 assert.doesNotMatch(firewall, /rinir-modbus" tcp dport 443 accept/);
+assert.doesNotMatch(firewall, /rinir-modbus" tcp dport 22 accept/);
 assert.match(kiosk, /chromium --kiosk/);
 assert.match(kiosk, /dashboard\/monitoring/);
+assert.match(installer, /useradd --system[\s\S]*--shell \/bin\/bash rinir-kiosk/);
+assert.doesNotMatch(installer, /--shell \/usr\/sbin\/nologin rinir-kiosk/);
+assert.match(installer, /useradd --create-home --shell \/bin\/bash rinir/);
+assert.match(installer, /usermod --append --groups sudo[\s\S]*rinir/);
+assert.match(installer, /PermitRootLogin no/);
+assert.match(installer, /AllowUsers rinir/);
+assert.match(acceptance, /check_service ssh\.service/);
 
 for (const name of [
     "MANAGEMENT_INTERFACE",
@@ -130,7 +141,8 @@ for (const name of [
     "REMOTE_USER",
     "ADMIN_ACCESS_CODE",
     "NODE_RED_ADMIN_PASSWORD",
-    "REMOTE_INITIAL_PASSWORD"
+    "REMOTE_INITIAL_PASSWORD",
+    "SSH_PASSWORD"
 ]) {
     assert.match(factoryExample, new RegExp(`^${name}=`, "m"));
     assert.ok(docs.includes(`\`${name}\``), `${name} must be documented`);
@@ -154,7 +166,9 @@ for (const packageName of [
     "chromium",
     "unclutter",
     "systemd-resolved",
-    "nftables"
+    "nftables",
+    "openssh-server",
+    "sudo"
 ]) {
     assert.match(bundle, new RegExp(`\\b${packageName.replaceAll("-", "\\-")}\\b`));
 }
@@ -174,6 +188,7 @@ assert.match(windowsContainer, /tr -d '\\r'/);
 assert.match(windowsContainer, /install -d -m 0700 \/work[\s\S]*tr -d '\\r'/);
 assert.match(windowsContainer, /replace-with-/);
 assert.match(windowsContainer, /ADMIN_ACCESS_CODE must contain at least 10 characters/);
+assert.match(windowsContainer, /SSH_PASSWORD must contain at least 8 characters/);
 assert.match(windowsContainer, /may contain only A-Z/);
 assert.match(windowsBuilder, /Factory build evidence was not created/);
 assert.doesNotMatch(windowsBuilder, /SourceSha256/);

@@ -64,6 +64,13 @@ check_service gas-monitoring.service
 check_service nginx.service
 check_service lightdm.service
 check_service nftables.service
+check_service ssh.service
+
+id rinir >/dev/null
+id -nG rinir | tr ' ' '\n' | grep -qx sudo
+sshd -T | grep -qx 'permitrootlogin no'
+sshd -T | grep -qx 'passwordauthentication yes'
+pass "SSH maintenance user and policy"
 
 wait_http http://127.0.0.1:1880/dashboard/monitoring
 wait_http http://127.0.0.1:8086/health

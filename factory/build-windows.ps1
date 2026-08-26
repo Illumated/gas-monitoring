@@ -34,7 +34,7 @@ $factoryConfigText = Get-Content -LiteralPath $factoryConfigPath -Raw
 if ($factoryConfigText -match 'replace-with-') {
     throw "Factory config contains unchanged placeholder credentials"
 }
-foreach ($requiredSetting in @('ADMIN_ACCESS_CODE', 'NODE_RED_ADMIN_PASSWORD', 'REMOTE_INITIAL_PASSWORD')) {
+foreach ($requiredSetting in @('ADMIN_ACCESS_CODE', 'NODE_RED_ADMIN_PASSWORD', 'REMOTE_INITIAL_PASSWORD', 'SSH_PASSWORD')) {
     if ($factoryConfigText -notmatch "(?m)^$requiredSetting=.+$") {
         throw "Factory config is missing $requiredSetting"
     }

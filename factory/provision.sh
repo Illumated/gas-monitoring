@@ -31,7 +31,7 @@ apt-get \
   -o "Dir::Etc::sourceparts=-" \
   install -y \
   ca-certificates curl openssl apache2-utils nginx lightdm openbox \
-  chromium unclutter systemd-resolved nftables \
+  chromium unclutter systemd-resolved nftables openssh-server sudo \
   containerd.io docker-ce docker-ce-cli docker-buildx-plugin \
   docker-compose-plugin salt-common salt-minion
 rm -f "$offline_sources"
@@ -52,7 +52,7 @@ bash "$PAYLOAD_DIR/app/deploy/debian/firstboot.sh"
 bash "$PAYLOAD_DIR/app/deploy/debian/install-system.sh"
 
 systemctl enable gas-monitoring.service gas-monitoring-acceptance.service \
-  nginx.service lightdm.service salt-minion.service nftables.service
+  nginx.service lightdm.service salt-minion.service nftables.service ssh.service
 install -d -m 0755 /var/lib/rinir-factory
 touch /var/lib/rinir-factory/provision.done
 systemctl disable factory-provision.service

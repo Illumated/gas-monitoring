@@ -12,6 +12,7 @@
 | `nginx.service` | Удалённый HTTPS endpoint с auth-service | Нет |
 | `lightdm.service` | Минимальная Openbox/Chromium kiosk-сессия | Нет |
 | `nftables.service` | Доступ к `443/tcp` только через management LAN | Нет |
+| `ssh.service` | Сервисный SSH-доступ пользователя `rinir` через management LAN | Нет |
 | `salt-minion.service` | Последующие конфигурации и обновления | — |
 
 Salt всегда установлен и включён, но не входит в dependency graph приложения. При отсутствии master мониторинг продолжает локальный запуск.
@@ -33,7 +34,7 @@ Hostname имеет строгий формат `RINIR-XXXXXX`. Приложен
 ## Локальная проверка
 
 ```bash
-sudo systemctl status gas-monitoring.service nginx.service lightdm.service nftables.service salt-minion.service
+sudo systemctl status gas-monitoring.service nginx.service lightdm.service nftables.service ssh.service salt-minion.service
 sudo docker compose \
   --env-file /etc/gas-monitoring/gas-monitoring.env \
   -f /opt/gas-monitoring/docker/compose.yaml \
@@ -45,5 +46,7 @@ sudo /opt/gas-monitoring/deploy/debian/acceptance.sh
 ```
 
 Удалённый endpoint: `https://RINIR-XXXXXX/`. Доступ к Node-RED `1880` и InfluxDB `8086` через LAN запрещён.
+
+Сервисный SSH доступен только через management LAN пользователю `rinir`. Root login запрещён. Пароль задаётся переменной `SSH_PASSWORD` в защищённом объектном `factory.env` и после ввода устройства в эксплуатацию должен быть сменён по принятой политике доступа.
 
 Ручной online-скрипт `deploy/debian/install-docker-engine.sh` сохранён для ремонтной установки. Он требует явно заданных точных версий и не заменяет заводской offline bundle.

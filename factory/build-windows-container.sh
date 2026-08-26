@@ -43,6 +43,7 @@ source "$NORMALIZED_FACTORY_CONFIG"
 : "${ADMIN_ACCESS_CODE:=}"
 : "${NODE_RED_ADMIN_PASSWORD:=}"
 : "${REMOTE_INITIAL_PASSWORD:=}"
+: "${SSH_PASSWORD:=}"
 [[ ${#ADMIN_ACCESS_CODE} -ge 10 ]] || {
   echo "ADMIN_ACCESS_CODE must contain at least 10 characters" >&2
   exit 1
@@ -55,7 +56,11 @@ source "$NORMALIZED_FACTORY_CONFIG"
   echo "REMOTE_INITIAL_PASSWORD must contain at least 10 characters" >&2
   exit 1
 }
-for secret_name in ADMIN_ACCESS_CODE NODE_RED_ADMIN_PASSWORD REMOTE_INITIAL_PASSWORD; do
+[[ ${#SSH_PASSWORD} -ge 8 ]] || {
+  echo "SSH_PASSWORD must contain at least 8 characters" >&2
+  exit 1
+}
+for secret_name in ADMIN_ACCESS_CODE NODE_RED_ADMIN_PASSWORD REMOTE_INITIAL_PASSWORD SSH_PASSWORD; do
   secret_value="${!secret_name}"
   [[ "$secret_value" =~ ^[A-Za-z0-9._@+-]+$ ]] || {
     echo "$secret_name may contain only A-Z, a-z, 0-9 and ._@+-" >&2

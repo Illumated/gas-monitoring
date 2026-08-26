@@ -42,6 +42,7 @@ load_factory_config() {
   : "${ADMIN_ACCESS_CODE:=}"
   : "${NODE_RED_ADMIN_PASSWORD:=}"
   : "${REMOTE_INITIAL_PASSWORD:=}"
+  : "${SSH_PASSWORD:=}"
   [[ "$REMOTE_USER" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid REMOTE_USER"
   [[ "$REMOTE_HTTPS_PORT" == "443" ]] ||
     die "REMOTE_HTTPS_PORT currently must be 443"
@@ -51,12 +52,16 @@ load_factory_config() {
     die "set a unique NODE_RED_ADMIN_PASSWORD with at least 12 characters"
   [[ "$REMOTE_INITIAL_PASSWORD" != replace-with-* && ${#REMOTE_INITIAL_PASSWORD} -ge 10 ]] ||
     die "set a unique REMOTE_INITIAL_PASSWORD with at least 10 characters"
+  [[ "$SSH_PASSWORD" != replace-with-* && ${#SSH_PASSWORD} -ge 8 ]] ||
+    die "set a unique SSH_PASSWORD with at least 8 characters"
   [[ "$ADMIN_ACCESS_CODE" =~ ^[A-Za-z0-9._@+-]+$ ]] ||
     die "ADMIN_ACCESS_CODE contains unsupported characters"
   [[ "$NODE_RED_ADMIN_PASSWORD" =~ ^[A-Za-z0-9._@+-]+$ ]] ||
     die "NODE_RED_ADMIN_PASSWORD contains unsupported characters"
   [[ "$REMOTE_INITIAL_PASSWORD" =~ ^[A-Za-z0-9._@+-]+$ ]] ||
     die "REMOTE_INITIAL_PASSWORD contains unsupported characters"
+  [[ "$SSH_PASSWORD" =~ ^[A-Za-z0-9._@+-]+$ ]] ||
+    die "SSH_PASSWORD contains unsupported characters"
 }
 
 install_application_files() {
@@ -147,6 +152,8 @@ Node-RED editor password: $admin_password
 Remote URL: https://$(hostnamectl --static)/
 Remote user: ${REMOTE_USER,,}
 Remote password: $remote_password
+SSH user: rinir
+SSH password: $SSH_PASSWORD
 EOF
   chmod 0600 "$CREDENTIALS_FILE"
 }
@@ -171,8 +178,9 @@ generate_remote_access() {
 configure_kiosk() {
   if ! id rinir-kiosk >/dev/null 2>&1; then
     useradd --system --create-home --home-dir /var/lib/rinir-kiosk \
-      --shell /usr/sbin/nologin rinir-kiosk
+      --shell /bin/bash rinir-kiosk
   fi
+  usermod --shell /bin/bash rinir-kiosk
   if getent group autologin >/dev/null; then
     usermod --append --groups autologin rinir-kiosk
   fi
@@ -202,6 +210,23 @@ EOF
     /var/lib/rinir-kiosk/.config/systemd/user/gas-monitoring-kiosk.service
   chown rinir-kiosk:rinir-kiosk \
     /var/lib/rinir-kiosk/.config/systemd/user/gas-monitoring-kiosk.service
+}
+
+configure_ssh_access() {
+  if ! id rinir >/dev/null 2>&1; then
+    useradd --create-home --shell /bin/bash rinir
+  fi
+  usermod --append --groups sudo --shell /bin/bash rinir
+  printf 'rinir:%s\n' "$SSH_PASSWORD" | chpasswd
+  install -d -m 0755 /etc/ssh/sshd_config.d
+  cat >/etc/ssh/sshd_config.d/50-rinir.conf <<'EOF'
+PermitRootLogin no
+PasswordAuthentication yes
+KbdInteractiveAuthentication no
+AllowUsers rinir
+EOF
+  sshd -t
+  systemctl enable ssh.service
 }
 
 install_services() {
@@ -239,6 +264,7 @@ main() {
   generate_application_config
   generate_remote_access
   configure_kiosk
+  configure_ssh_access
   install_services
   echo "System installation completed. Credentials: $CREDENTIALS_FILE"
 }

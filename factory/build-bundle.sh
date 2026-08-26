@@ -92,6 +92,8 @@ package_container="$(docker create \
       unclutter \
       systemd-resolved \
       nftables \
+      openssh-server \
+      sudo \
       "docker-ce=$DOCKER_CE_VERSION" \
       "docker-ce-cli=$DOCKER_CE_VERSION" \
       "containerd.io=$CONTAINERD_VERSION" \

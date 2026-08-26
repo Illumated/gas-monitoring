@@ -35,7 +35,7 @@ Copy-Item .\deploy\debian\factory.env.example C:\RINIR-secure\factory-RINIR.env
 notepad.exe C:\RINIR-secure\factory-RINIR.env
 ```
 
-Обязательно заменить три `replace-with-*` уникальными значениями: `ADMIN_ACCESS_CODE`, `NODE_RED_ADMIN_PASSWORD`, `REMOTE_INITIAL_PASSWORD`. Файл не добавлять в Git и не пересылать в открытом виде. Если автоматическое назначение LAN не совпадает с разводкой, заполнить `MANAGEMENT_INTERFACE` и `MODBUS_INTERFACE`.
+Обязательно заменить четыре `replace-with-*` уникальными значениями: `ADMIN_ACCESS_CODE`, `NODE_RED_ADMIN_PASSWORD`, `REMOTE_INITIAL_PASSWORD`, `SSH_PASSWORD`. Файл не добавлять в Git и не пересылать в открытом виде. Если автоматическое назначение LAN не совпадает с разводкой, заполнить `MANAGEMENT_INTERFACE` и `MODBUS_INTERFACE`.
 
 **Критерий завершения:** известны реквизиты сервисного администратора, Node‑RED editor и первого удалённого пользователя; роли LAN зафиксированы.
 

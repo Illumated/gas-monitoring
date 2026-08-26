@@ -125,7 +125,7 @@ DNSDefaultRoute=no
 EOF
 
   cat >/etc/network/interfaces <<'EOF'
-# Network roles are managed by systemd-networkd.
+# Сетевыми ролями управляет systemd-networkd.
 auto lo
 iface lo inet loopback
 EOF
