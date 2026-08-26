@@ -18,7 +18,24 @@ sha256sum --check SHA256SUMS
 export DEBIAN_FRONTEND=noninteractive
 mapfile -t packages < <(find "$PAYLOAD_DIR/packages" -maxdepth 1 -type f -name '*.deb' -print | sort)
 [[ "${#packages[@]}" -gt 0 ]] || die "offline package set is empty"
-apt-get install -y --no-download "${packages[@]}"
+[[ -s "$PAYLOAD_DIR/packages/Packages.gz" ]] || die "offline APT index is missing"
+offline_sources="$(mktemp)"
+trap 'rm -f "$offline_sources"' EXIT
+printf 'deb [trusted=yes] file:%s ./\n' "$PAYLOAD_DIR/packages" >"$offline_sources"
+apt-get \
+  -o "Dir::Etc::sourcelist=$offline_sources" \
+  -o "Dir::Etc::sourceparts=-" \
+  update
+apt-get \
+  -o "Dir::Etc::sourcelist=$offline_sources" \
+  -o "Dir::Etc::sourceparts=-" \
+  install -y \
+  ca-certificates curl openssl apache2-utils nginx lightdm openbox \
+  chromium unclutter systemd-resolved nftables \
+  containerd.io docker-ce docker-ce-cli docker-buildx-plugin \
+  docker-compose-plugin salt-common salt-minion
+rm -f "$offline_sources"
+trap - EXIT
 
 apt-mark hold \
   containerd.io docker-ce docker-ce-cli docker-buildx-plugin \

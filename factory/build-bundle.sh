@@ -63,7 +63,7 @@ package_container="$(docker create \
   "$FACTORY_BUILDER_IMAGE" bash -euxc '
     install -d -m 0755 /packages
     apt-get update
-    apt-get install -y ca-certificates curl
+    apt-get install -y ca-certificates curl dpkg-dev
     install -d -m 0755 /etc/apt/keyrings
     curl -fsSL https://download.docker.com/linux/debian/gpg \
       -o /etc/apt/keyrings/docker.asc
@@ -77,8 +77,21 @@ package_container="$(docker create \
       "deb [signed-by=/etc/apt/keyrings/salt-archive-keyring.pgp] https://packages.broadcom.com/artifactory/saltproject-deb stable main" \
       >/etc/apt/sources.list.d/salt.list
     apt-get update
+    : > /tmp/rinir-empty-dpkg-status
     apt-get install -y --download-only \
+      -o Dir::State::status=/tmp/rinir-empty-dpkg-status \
       -o Dir::Cache::archives=/packages \
+      ca-certificates \
+      curl \
+      openssl \
+      apache2-utils \
+      nginx \
+      lightdm \
+      openbox \
+      chromium \
+      unclutter \
+      systemd-resolved \
+      nftables \
       "docker-ce=$DOCKER_CE_VERSION" \
       "docker-ce-cli=$DOCKER_CE_VERSION" \
       "containerd.io=$CONTAINERD_VERSION" \
@@ -88,6 +101,10 @@ package_container="$(docker create \
       "salt-minion=$SALT_VERSION"
     rm -f /packages/lock
     rm -rf /packages/partial
+    rm -f /tmp/rinir-empty-dpkg-status
+    cd /packages
+    dpkg-scanpackages . /dev/null > Packages
+    gzip -9 --keep Packages
   ')"
 cleanup_package_container() {
   if [[ -n "${package_container:-}" ]]; then

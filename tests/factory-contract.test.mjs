@@ -68,6 +68,11 @@ assert.match(preseed, /passwd\/root-login boolean true/);
 assert.match(preseed, /passwd\/root-password-crypted password \*/);
 assert.match(preseed, /passwd\/make-user boolean false/);
 assert.match(preseed, /in-target passwd --lock root/);
+assert.doesNotMatch(
+    preseed,
+    /pkgsel\/include/,
+    "packages absent from Debian DVD-1 must be installed from the offline bundle"
+);
 assert.match(preseed, /grub-installer\/bootdev string default/);
 assert.match(preseed, /touch \/target\/var\/lib\/rinir-factory\/install\.done/);
 assert.ok(
@@ -92,6 +97,10 @@ assert.match(isoBuildScript, /factory\/preseed\.cfg[\s\S]*\/preseed\.cfg/);
 assert.match(isoBuildScript, /initrd-result\.gz[\s\S]*cpio -id --quiet preseed\.cfg[\s\S]*cmp .*preseed\.cfg/);
 assert.match(isoBuildScript, /cmp .*grub-result\.cfg/);
 assert.match(provisioning, /sha256sum --check SHA256SUMS/);
+assert.match(provisioning, /packages\/Packages\.gz/);
+assert.match(provisioning, /deb \[trusted=yes\] file:/);
+assert.match(provisioning, /Dir::Etc::sourcelist=\$offline_sources/);
+assert.match(provisioning, /Dir::Etc::sourceparts=-/);
 assert.match(provisioning, /apt-mark hold[\s\S]*salt-common salt-minion/);
 assert.match(provisioning, /docker load --input/);
 
@@ -131,6 +140,24 @@ assert.match(installer, /admin_code="\$ADMIN_ACCESS_CODE"/);
 assert.match(installer, /admin_password="\$NODE_RED_ADMIN_PASSWORD"/);
 assert.match(installer, /remote_password="\$REMOTE_INITIAL_PASSWORD"/);
 assert.match(bundle, /docker build[\s\S]*gas-monitoring-node-red:0\.1\.0/);
+assert.match(bundle, /Dir::State::status=\/tmp\/rinir-empty-dpkg-status/);
+assert.match(bundle, /dpkg-scanpackages/);
+assert.match(bundle, /gzip -9 --keep Packages/);
+for (const packageName of [
+    "ca-certificates",
+    "curl",
+    "openssl",
+    "apache2-utils",
+    "nginx",
+    "lightdm",
+    "openbox",
+    "chromium",
+    "unclutter",
+    "systemd-resolved",
+    "nftables"
+]) {
+    assert.match(bundle, new RegExp(`\\b${packageName.replaceAll("-", "\\-")}\\b`));
+}
 assert.doesNotMatch(bundle, /compose\.production\.yaml[\s\S]*build node-red/);
 assert.match(image, /tools\/wb-mai6-commission\.mjs/);
 assert.match(image, /tools\/hardware-fat\.mjs/);
