@@ -82,11 +82,15 @@ assert.ok(
     "install.done must be created only after the first-boot service is installed"
 );
 assert.match(diskSelector, /install\.done/);
-assert.match(diskSelector, /refusing to erase the internal disk/);
+assert.match(diskSelector, /rinir_force_reinstall=true/);
+assert.match(diskSelector, /\[ "\$force_reinstall" != true \]/);
 assert.match(diskSelector, /\/sys\/block\/\$block\/removable/);
 assert.match(grubBoot, /set timeout=10/);
 assert.match(grubBoot, /search --no-floppy --file[\s\S]*install\.done/);
 assert.match(grubBoot, /configfile \/boot\/grub\/grub\.cfg/);
+assert.match(grubBoot, /set timeout=30/);
+assert.match(grubBoot, /полностью стереть диск и переустановить RINIR/);
+assert.match(grubBoot, /rinir_force_reinstall=true/);
 assert.match(grubBoot, /auto=true priority=critical/);
 assert.match(grubBoot, /file=\/cdrom\/preseed\.cfg/);
 assert.match(isolinuxBoot, /default rinir-auto/);

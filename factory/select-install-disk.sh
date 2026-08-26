@@ -4,14 +4,22 @@ set -eu
 scan_dir=/tmp/rinir-installed-system
 mkdir -p "$scan_dir"
 
+force_reinstall=false
+case " $(cat /proc/cmdline) " in
+  *" rinir_force_reinstall=true "*) force_reinstall=true ;;
+esac
+
 for partition in $(list-devices partition); do
   if mount -o ro "$partition" "$scan_dir" 2>/dev/null; then
     if [ -e "$scan_dir/var/lib/rinir-factory/install.done" ]; then
       umount "$scan_dir"
-      echo "RINIR is already installed; refusing to erase the internal disk" >/dev/tty1
-      sleep 10
-      poweroff -f
-      exit 1
+      if [ "$force_reinstall" != true ]; then
+        echo "RINIR уже установлен; очистка внутреннего диска запрещена" >/dev/tty1
+        sleep 10
+        poweroff -f
+        exit 1
+      fi
+      break
     fi
     umount "$scan_dir"
   fi
