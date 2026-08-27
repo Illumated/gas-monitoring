@@ -66,6 +66,21 @@ check_service lightdm.service
 check_service nftables.service
 check_service ssh.service
 
+kiosk_uid="$(id -u rinir-kiosk)"
+[[ "$(stat -c '%U:%G' /var/lib/rinir-kiosk/.config)" == "rinir-kiosk:rinir-kiosk" ]]
+for _ in $(seq 1 30); do
+  if runuser -u rinir-kiosk -- env XDG_RUNTIME_DIR="/run/user/$kiosk_uid" \
+      systemctl --user is-active --quiet gas-monitoring-kiosk.service &&
+      pgrep -u rinir-kiosk -x chromium >/dev/null; then
+    break
+  fi
+  sleep 2
+done
+runuser -u rinir-kiosk -- env XDG_RUNTIME_DIR="/run/user/$kiosk_uid" \
+  systemctl --user is-active --quiet gas-monitoring-kiosk.service
+pgrep -u rinir-kiosk -x chromium >/dev/null
+pass "Chromium kiosk is active"
+
 id rinir >/dev/null
 id -nG rinir | tr ' ' '\n' | grep -qx sudo
 sshd -T | grep -qx 'permitrootlogin no'

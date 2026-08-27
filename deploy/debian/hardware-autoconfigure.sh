@@ -7,14 +7,21 @@ readonly ENV_FILE=/etc/gas-monitoring/gas-monitoring.env
 
 install -d -m 0755 "$STATE_DIR"
 [[ -e "$DONE_FILE" ]] && exit 0
-# shellcheck disable=SC1090
-source "$ENV_FILE"
+
+read_env_value() {
+  local name="$1"
+  sed -n "s/^${name}=//p" "$ENV_FILE" | tail -n 1
+}
+
+MODBUS_HOST="$(read_env_value MODBUS_HOST)"
+MODBUS_PORT="$(read_env_value MODBUS_PORT)"
 
 docker run --rm --network host --user 0:0 --cap-drop ALL --security-opt no-new-privileges:true \
+  --entrypoint node \
   --volume /etc/gas-monitoring:/config \
   --volume "$STATE_DIR:/evidence" \
   gas-monitoring-node-red:0.1.0 \
-  node /usr/src/node-red/tools/wb-autoconfigure.mjs \
+  /usr/src/node-red/tools/wb-autoconfigure.mjs \
   --apply --host "${MODBUS_HOST:-192.168.50.10}" --port "${MODBUS_PORT:-502}" \
   --env-file /config/gas-monitoring.env --evidence /evidence
 

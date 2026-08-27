@@ -31,6 +31,7 @@ COPY --chown=node-red:node-red scripts/hardware-fat.mjs /usr/src/node-red/tools/
 COPY --chown=node-red:node-red scripts/lib/wb-mai6-map.mjs /usr/src/node-red/tools/lib/wb-mai6-map.mjs
 
 RUN chmod 0555 /opt/gas-monitoring/start.sh
+RUN chown -R node-red:node-red /data
 
 USER node-red
 

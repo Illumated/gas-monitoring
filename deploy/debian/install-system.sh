@@ -185,6 +185,8 @@ configure_kiosk() {
     usermod --append --groups autologin rinir-kiosk
   fi
   install -d -o rinir-kiosk -g rinir-kiosk -m 0700 \
+    /var/lib/rinir-kiosk/.config
+  install -d -o rinir-kiosk -g rinir-kiosk -m 0700 \
     /var/lib/rinir-kiosk/.config/openbox
   cat >/var/lib/rinir-kiosk/.config/openbox/autostart <<'EOF'
 xset -dpms

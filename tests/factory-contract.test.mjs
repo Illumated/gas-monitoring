@@ -23,7 +23,8 @@ const [
     grubBoot,
     isolinuxBoot,
     diskSelector,
-    acceptance
+    acceptance,
+    hardwareAutoconfigure
 ] = await Promise.all([
     read("../factory/versions.env"),
     read("../factory/preseed.cfg"),
@@ -45,7 +46,8 @@ const [
     read("../factory/boot/grub.cfg"),
     read("../factory/boot/isolinux.cfg"),
     read("../factory/select-install-disk.sh"),
-    read("../deploy/debian/acceptance.sh")
+    read("../deploy/debian/acceptance.sh"),
+    read("../deploy/debian/hardware-autoconfigure.sh")
 ]);
 
 for (const expected of [
@@ -131,11 +133,14 @@ assert.match(kiosk, /chromium --kiosk/);
 assert.match(kiosk, /dashboard\/monitoring/);
 assert.match(installer, /useradd --system[\s\S]*--shell \/bin\/bash rinir-kiosk/);
 assert.doesNotMatch(installer, /--shell \/usr\/sbin\/nologin rinir-kiosk/);
+assert.match(installer, /\/var\/lib\/rinir-kiosk\/\.config\n/);
 assert.match(installer, /useradd --create-home --shell \/bin\/bash rinir/);
 assert.match(installer, /usermod --append --groups sudo[\s\S]*rinir/);
 assert.match(installer, /PermitRootLogin no/);
 assert.match(installer, /AllowUsers rinir/);
 assert.match(acceptance, /check_service ssh\.service/);
+assert.match(acceptance, /systemctl --user is-active --quiet gas-monitoring-kiosk\.service/);
+assert.match(acceptance, /pgrep -u rinir-kiosk -x chromium/);
 
 for (const name of [
     "MANAGEMENT_INTERFACE",
@@ -178,6 +183,13 @@ for (const packageName of [
 }
 assert.doesNotMatch(bundle, /compose\.production\.yaml[\s\S]*build node-red/);
 assert.match(image, /tools\/wb-mai6-commission\.mjs/);
+assert.match(image, /chown -R node-red:node-red \/data/);
+assert.match(appService, /up -d --remove-orphans --wait --wait-timeout 170/);
+assert.doesNotMatch(hardwareAutoconfigure, /source ["']?\$ENV_FILE/);
+assert.match(hardwareAutoconfigure, /read_env_value MODBUS_HOST/);
+assert.match(hardwareAutoconfigure, /read_env_value MODBUS_PORT/);
+assert.match(hardwareAutoconfigure, /--entrypoint node/);
+assert.doesNotMatch(hardwareAutoconfigure, /gas-monitoring-node-red:0\.1\.0 \\\n\s+node \/usr\/src\/node-red\/tools/);
 assert.match(image, /tools\/hardware-fat\.mjs/);
 assert.match(installer, /gas-monitoring-acceptance\.service/);
 assert.match(windowsBuilder, /Get-FileHash -Algorithm SHA256/);
