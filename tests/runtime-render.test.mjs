@@ -21,9 +21,9 @@ try {
                 MODBUS_HOST: "modbus-simulator",
                 MODBUS_PORT: "1502",
                 MODBUS_UNIT_ID: "65",
-                MODBUS_POLL_INTERVAL_MS: "2000",
-                MODBUS_COMMAND_DELAY_MS: "300",
-                GAS_STALE_TIMEOUT_MS: "6000",
+                MODBUS_POLL_INTERVAL_MS: "1000",
+                MODBUS_COMMAND_DELAY_MS: "100",
+                GAS_STALE_TIMEOUT_MS: "3000",
                 MONITOR_ID: "RINIR-A1B2C3"
             }
         }
@@ -35,12 +35,12 @@ try {
     assert.equal(client.tcpHost, "modbus-simulator");
     assert.equal(client.tcpPort, "1502");
     assert.equal(client.unit_id, 65);
-    assert.equal(client.commandDelay, "300");
+    assert.equal(client.commandDelay, "100");
 
     const pollCycle = nodes.find((node) => node.id === "poll-cycle");
     const pollDelay = nodes.find((node) => node.id === "poll-delay");
     assert.equal(pollCycle.repeat, "0.5");
-    assert.equal(pollDelay.nbRateUnits, "0.3");
+    assert.equal(pollDelay.nbRateUnits, "0.1");
     assert.equal(pollDelay.rateUnits, "second");
 
     const invalidQueue = spawnSync(

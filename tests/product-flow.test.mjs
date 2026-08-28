@@ -24,9 +24,9 @@ assert.equal(client.clienttype, "tcp");
 assert.equal(client.tcpHost, "${MODBUS_HOST}");
 assert.equal(client.tcpPort, "${MODBUS_PORT}");
 assert.equal(client.unit_id, 65);
-assert.equal(client.serialBaudrate, "9600");
+assert.equal(client.serialBaudrate, "115200");
 assert.equal(client.serialDatabits, "8");
-assert.equal(client.serialStopbits, "1");
+assert.equal(client.serialStopbits, "2");
 assert.equal(client.serialParity, "none");
 assert.equal(client.commandDelay, "${MODBUS_COMMAND_DELAY_MS}");
 
@@ -63,9 +63,15 @@ assert.equal(currentDebug.active, true);
 assert.equal(currentDebug.tosidebar, true);
 assert.deepEqual(normalize.wires[2], [currentDebug.id]);
 assert.match(byId.get("ui-engineering").format, /Токовые входы WB-MAI6/);
+assert.match(byId.get("ui-engineering").format, /Подготовить WB-MAI6/);
+assert.match(byId.get("ui-engineering").format, /Подготовить WB-MR3LV\/I/);
+assert.equal(byId.get("fn-engineering-manager").outputs, 4);
+assert.match(byId.get("fn-engineering-manager").func, /engineering-prepare-hardware/);
+assert.equal(byId.get("exec-hardware-commission").command, "node /usr/src/node-red/tools/service-commission.mjs");
+assert.match(byId.get("poll-builder").func, /hardwareCommissioning/);
 assert.match(byId.get("ui-engineering").format, /IN1P/);
 assert.match(byId.get("ui-engineering").format, /Период полного цикла опроса, мс/);
-assert.match(byId.get("ui-engineering").format, /Рекомендуется 2000–5000 мс/);
+assert.match(byId.get("ui-engineering").format, /Рекомендуется 1000–3000 мс/);
 const normalizeFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", normalize.func);
 const nodeMock = { send() {}, error() {} };
 const normalizeStore = {};
@@ -409,7 +415,7 @@ assert.deepEqual(
     ["oxygen", "air", "vacuum", "n2o", "co2"],
     "all five gas channels must be available as default valve triggers"
 );
-assert.equal(defaultSettingsResult[0].payload.settings.pollIntervalMs, 2000);
+assert.equal(defaultSettingsResult[0].payload.settings.pollIntervalMs, 1000);
 const emptyRegistryResult = engineeringFn(
     { _client: { socketId: "client-1" }, payload: { action: "engineering-unlock", code: "operator-test-code" } },
     nodeMock, engineeringContext, engineeringEnv
@@ -479,7 +485,7 @@ assert.equal(afterRestartLoad[0].payload.settings.gases.length, 5, "older settin
 assert.equal(afterRestartLoad[0].payload.settings.channelCount, 5);
 assert.equal(afterRestartLoad[0].payload.settings.pollIntervalMs, 2500);
 const invalidPollInterval = structuredClone(candidateSettings);
-invalidPollInterval.pollIntervalMs = 1500;
+invalidPollInterval.pollIntervalMs = 500;
 const invalidPollResult = engineeringFn(
     { _client: { socketId: "client-1" }, payload: { action: "engineering-save", settings: invalidPollInterval } },
     nodeMock, engineeringContext, engineeringEnv

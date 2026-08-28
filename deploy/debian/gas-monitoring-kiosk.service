@@ -6,6 +6,7 @@ Type=simple
 User=rinir-kiosk
 Group=rinir-kiosk
 Environment=HOME=/var/lib/rinir-kiosk
+ExecStartPre=/usr/bin/test -e /var/lib/rinir-factory/commissioning/hardware-autoconfigure.done
 ExecStartPre=/usr/bin/curl --fail --output /dev/null --retry 60 --retry-delay 2 --retry-connrefused http://127.0.0.1:1880/dashboard/monitoring
 ExecStart=/usr/bin/chromium --kiosk --noerrdialogs --disable-session-crashed-bubble --disable-infobars --disable-pinch --password-store=basic --overscroll-history-navigation=0 http://127.0.0.1:1880/dashboard/monitoring
 Restart=always

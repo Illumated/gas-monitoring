@@ -1,8 +1,7 @@
 [Unit]
 Description=RINIR gas monitoring
-Requires=docker.service
+Requires=docker.service gas-monitoring-hardware-autoconfigure.service
 After=docker.service network-online.target gas-monitoring-hardware-autoconfigure.service
-Wants=gas-monitoring-hardware-autoconfigure.service
 Wants=network-online.target
 
 [Service]

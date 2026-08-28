@@ -85,7 +85,7 @@ http://127.0.0.1:1880/dashboard/monitoring
 Работать строго по порядку:
 
 1. [04 — Подключение](04-wiring.md).
-2. [05 — USR‑DR134](05-usr-dr134-commissioning.md): `192.168.50.10:502`, TCP Server, Modbus TCP↔RTU, `9600 8N2`.
+2. [05 — USR‑DR134](05-usr-dr134-commissioning.md): `192.168.50.10:502`, TCP Server, Modbus TCP↔RTU, `115200 8N2`.
 3. [06 — WB‑MAI6](06-wb-mai6-commissioning.md): read-only snapshot, затем профиль `gas-monitoring` — IN1P…IN5P 4–20 мА/0…100 и опциональный сухой контакт IN6P.
 4. [08 — аппаратный FAT](08-hardware-fat.md): точки 4/12/20 мА, обрыв и длительный прогон.
 

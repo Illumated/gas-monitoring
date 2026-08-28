@@ -25,7 +25,8 @@ const [
     diskSelector,
     acceptance,
     hardwareAutoconfigure,
-    wbAutoconfigure
+    wbAutoconfigure,
+    usrDr134Config
 ] = await Promise.all([
     read("../factory/versions.env"),
     read("../factory/preseed.cfg"),
@@ -49,7 +50,8 @@ const [
     read("../factory/select-install-disk.sh"),
     read("../deploy/debian/acceptance.sh"),
     read("../deploy/debian/hardware-autoconfigure.sh"),
-    read("../scripts/wb-autoconfigure.mjs")
+    read("../scripts/wb-autoconfigure.mjs"),
+    read("../scripts/usr-dr134-config.mjs")
 ]);
 
 for (const expected of [
@@ -185,16 +187,30 @@ for (const packageName of [
 }
 assert.doesNotMatch(bundle, /compose\.production\.yaml[\s\S]*build node-red/);
 assert.match(image, /tools\/wb-mai6-commission\.mjs/);
+assert.match(image, /tools\/usr-dr134-config\.mjs/);
+assert.match(image, /tools\/service-commission\.mjs/);
 assert.match(image, /chown -R node-red:node-red \/data/);
 assert.match(appService, /up -d --remove-orphans --wait --wait-timeout 170/);
 assert.doesNotMatch(hardwareAutoconfigure, /source ["']?\$ENV_FILE/);
 assert.match(hardwareAutoconfigure, /read_env_value MODBUS_HOST/);
 assert.match(hardwareAutoconfigure, /read_env_value MODBUS_PORT/);
+assert.match(hardwareAutoconfigure, /192\.168\.0\.7/);
+assert.match(hardwareAutoconfigure, /usr-dr134-config\.mjs[\s\S]*--baud 9600/);
+assert.match(hardwareAutoconfigure, /usr-dr134-config\.mjs[\s\S]*--baud 115200/);
+assert.match(hardwareAutoconfigure, /--verify-only/);
+assert.match(appService, /Requires=docker\.service gas-monitoring-hardware-autoconfigure\.service/);
+assert.match(kiosk, /hardware-autoconfigure\.done/);
 assert.match(hardwareAutoconfigure, /--entrypoint node/);
 assert.doesNotMatch(hardwareAutoconfigure, /gas-monitoring-node-red:0\.1\.0 \\\n\s+node \/usr\/src\/node-red\/tools/);
 assert.match(wbAutoconfigure, /MODBUS_REQUEST_DELAY_MS = 300/);
 assert.match(wbAutoconfigure, /WB-\?MAI6/);
 assert.match(wbAutoconfigure, /WB-\?MR3LV/);
+assert.match(wbAutoconfigure, /writeRegister\(128, targetUnitId\)/);
+assert.match(wbAutoconfigure, /writeRegister\(110, 1152\)/);
+assert.match(usrDr134Config, /\/port\.shtml/);
+assert.match(usrDr134Config, /\/network\.shtml/);
+assert.match(usrDr134Config, /reset: "1"/);
+assert.doesNotMatch(usrDr134Config, /console\.log\([^\n]*(password|authorization)/i);
 assert.match(image, /tools\/hardware-fat\.mjs/);
 assert.match(installer, /gas-monitoring-acceptance\.service/);
 assert.match(windowsBuilder, /Get-FileHash -Algorithm SHA256/);

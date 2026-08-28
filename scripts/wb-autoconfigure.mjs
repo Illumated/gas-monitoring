@@ -22,7 +22,14 @@ const timeoutMs = integer("--timeout-ms", 250, 50, 3000);
 const envFile = resolve(valueOf("--env-file", "/config/gas-monitoring.env"));
 const evidenceDirectory = resolve(valueOf("--evidence", "/evidence"));
 const apply = args.includes("--apply");
-if (!apply) throw new Error("automatic commissioning requires --apply");
+const verifyOnly = args.includes("--verify-only");
+const deviceMode = valueOf("--device", "all");
+const skipEnvUpdate = args.includes("--skip-env-update");
+if (!["all", "mai6", "relay"].includes(deviceMode)) throw new Error("--device must be all, mai6 or relay");
+const mai6TargetUnit = integer("--mai6-unit", 65, 1, 247);
+const relayTargetUnit = integer("--relay-unit", 66, 1, 247);
+if (mai6TargetUnit === relayTargetUnit) throw new Error("target Unit IDs must differ");
+if (!apply && !verifyOnly) throw new Error("automatic commissioning requires --apply or --verify-only");
 
 const decodeString = (registers) => registers
     .flatMap((value) => [(value >> 8) & 0xff, value & 0xff])
@@ -79,6 +86,28 @@ const configureMai6 = async (unitId) => {
     }
 };
 
+const configureConnection = async (unitId, targetUnitId) => {
+    client.setID(unitId);
+    await request(() => client.writeRegister(111, 0));
+    await request(() => client.writeRegister(112, 2));
+    if (unitId !== targetUnitId) {
+        await request(() => client.writeRegister(128, targetUnitId));
+        client.setID(targetUnitId);
+    }
+    // Скорость меняется последней: после записи устройство перестаёт отвечать шлюзу на 9600 bit/s.
+    await request(() => client.writeRegister(110, 1152));
+    return targetUnitId;
+};
+
+const verifyConnection = async (unitId) => {
+    client.setID(unitId);
+    const values = (await request(() => client.readHoldingRegisters(110, 3))).data;
+    const address = (await request(() => client.readHoldingRegisters(128, 1))).data[0];
+    if (values[0] !== 1152 || values[1] !== 0 || values[2] !== 2 || address !== unitId) {
+        throw new Error(`connection profile readback failed for Unit ID ${unitId}`);
+    }
+};
+
 const updateEnv = async (mai6UnitId, relayUnitId) => {
     let text = await readFile(envFile, "utf8");
     const set = (name, value) => {
@@ -96,12 +125,28 @@ try {
     await scan();
     const mai6 = found.filter((device) => /WB-?MAI6/i.test(device.model));
     const relays = found.filter((device) => /WB-?MR3LV/i.test(device.model));
-    if (mai6.length !== 1) throw new Error(`expected exactly one WB-MAI6, found ${mai6.length}`);
-    if (relays.length > 1) throw new Error(`expected at most one WB-MR3LV/I, found ${relays.length}`);
+    if (deviceMode !== "relay" && mai6.length !== 1) throw new Error(`expected exactly one WB-MAI6, found ${mai6.length}`);
+    if (deviceMode === "relay" && relays.length !== 1) throw new Error(`expected exactly one WB-MR3LV/I, found ${relays.length}`);
+    if (deviceMode !== "relay" && relays.length > 1) throw new Error(`expected at most one WB-MR3LV/I, found ${relays.length}`);
     if (relays[0]?.unitId === mai6[0].unitId) throw new Error("WB-MAI6 and WB-MR3LV/I must have different Unit IDs");
-    await configureMai6(mai6[0].unitId);
-    await updateEnv(mai6[0].unitId, relays[0]?.unitId ?? null);
-    evidence.result = { status: "configured", wbMai6UnitId: mai6[0].unitId, wbMr3lvUnitId: relays[0]?.unitId ?? null };
+    if (verifyOnly) {
+        if (deviceMode !== "relay" && mai6[0].unitId !== mai6TargetUnit) throw new Error(`WB-MAI6 expected at Unit ID ${mai6TargetUnit}`);
+        if (deviceMode !== "mai6" && relays[0] && relays[0].unitId !== relayTargetUnit) throw new Error(`WB-MR3LV/I expected at Unit ID ${relayTargetUnit}`);
+        if (deviceMode !== "relay") await verifyConnection(mai6TargetUnit);
+        if (deviceMode !== "mai6" && relays[0]) await verifyConnection(relayTargetUnit);
+        evidence.result = { status: "verified", wbMai6UnitId: deviceMode === "relay" ? null : mai6TargetUnit, wbMr3lvUnitId: deviceMode === "mai6" ? null : relays[0]?.unitId ?? null };
+    } else {
+        const occupiedTargets = found.filter((device) => [mai6TargetUnit, relayTargetUnit].includes(device.unitId));
+        for (const device of occupiedTargets) {
+            const expected = device === mai6[0] ? mai6TargetUnit : device === relays[0] ? relayTargetUnit : null;
+            if (expected !== device.unitId) throw new Error(`target Unit ID ${device.unitId} is already occupied`);
+        }
+        if (deviceMode !== "relay") await configureMai6(mai6[0].unitId);
+        const configuredMai6Unit = deviceMode === "relay" ? null : await configureConnection(mai6[0].unitId, mai6TargetUnit);
+        const configuredRelayUnit = deviceMode === "mai6" || !relays[0] ? null : await configureConnection(relays[0].unitId, relayTargetUnit);
+        if (!skipEnvUpdate) await updateEnv(configuredMai6Unit, configuredRelayUnit);
+        evidence.result = { status: "configured", wbMai6UnitId: configuredMai6Unit, wbMr3lvUnitId: configuredRelayUnit };
+    }
     console.log(JSON.stringify(evidence.result));
 } catch (error) {
     evidence.result = { status: "failed", error: error.message };

@@ -287,9 +287,9 @@ sudo /opt/gas-monitoring/deploy/debian/acceptance.sh
 
 Проверяются Debian/architecture, hostname, обе сетевые роли, отсутствие default route на Modbus LAN, Salt, Docker, Compose, nginx, kiosk, firewall, health endpoints и отсутствие LAN-публикации портов `1880/8086`. Отчёт сохраняется в `/var/lib/rinir-factory/acceptance/`.
 
-После второй загрузки `gas-monitoring-hardware-autoconfigure.service` сканирует Unit ID `1…247`, настраивает единственный WB-MAI6 и сохраняет найденные Unit ID. Допустимы ровно один WB-MAI6 и ноль или один WB-MR3LV/I. Evidence сохраняется в `/var/lib/rinir-factory/commissioning/`.
+После второй загрузки `gas-monitoring-hardware-autoconfigure.service` временно добавляет адресу Modbus-интерфейса заводскую подсеть `192.168.0.0/24`, находит USR-DR134 по рабочему `192.168.50.10` либо заводскому `192.168.0.7`, задаёт шлюзу `192.168.50.10:502` и профиль `9600 8N2`. Затем сервис сканирует Unit ID `1…247`, настраивает единственный WB-MAI6, назначает ему Unit ID `65`, опциональному WB-MR3LV/I — `66`, переводит найденные модули и шлюз на `115200 8N2` и выполняет повторное чтение конфигурации. Допустимы ровно один WB-MAI6 и ноль или один WB-MR3LV/I. Evidence сохраняется в `/var/lib/rinir-factory/commissioning/`.
 
-Если шлюз или WB-MAI6 недоступен, Dashboard запустится с состоянием «НЕТ ДАННЫХ». Причина видна в `journalctl -u gas-monitoring-hardware-autoconfigure.service -b`.
+Dashboard и Chromium kiosk запускаются только после успешного readback и создания `/var/lib/rinir-factory/commissioning/hardware-autoconfigure.done`. Если шлюз или обязательный WB-MAI6 недоступен, установка не выдаёт ложный признак готовности: kiosk остаётся закрытым, а причина фиксируется в `journalctl -u gas-monitoring-hardware-autoconfigure.service -b`. После устранения подключения сервис можно запустить повторно; переустановка ОС не требуется.
 
 ## Официальные источники версий
 

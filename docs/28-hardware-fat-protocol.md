@@ -18,7 +18,7 @@
 | Проверка | Ожидание | Факт | PASS/FAIL |
 |---|---|---|---|
 | WB-MAI6 Modbus address | 65 | | |
-| RS-485 | 9600, none, 1 stop bit | | |
+| RS-485 | 115200, none, 2 stop bits | | |
 | USR-DR134 protocol | Modbus TCP ↔ Modbus RTU | | |
 | TCP endpoint | 192.168.50.10:502 или утверждённый | | |
 | IN1P / O₂ | type 4866, scale 0…100 | | |

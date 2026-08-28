@@ -9,7 +9,7 @@
   },
   "scripts": {
     "generate:flow": "node scripts/generate-product-flow.mjs",
-    "test": "node tests/validate-flow.mjs && node tests/product-flow.test.mjs && node tests/auth-service.test.cjs && node tests/runtime-render.test.mjs && node tests/monitor-id.test.cjs && node tests/wb-mai6-map.test.mjs && node tests/wb-mai6-cli.test.mjs && node tests/hardware-fat-cli.test.mjs && node tests/simulation-cli.test.mjs && node tests/influx-retention.test.mjs && node tests/configuration-contract.test.mjs && node tests/factory-contract.test.mjs && node tests/documentation.test.mjs",
+    "test": "node tests/validate-flow.mjs && node tests/product-flow.test.mjs && node tests/auth-service.test.cjs && node tests/runtime-render.test.mjs && node tests/monitor-id.test.cjs && node tests/wb-mai6-map.test.mjs && node tests/wb-mai6-cli.test.mjs && node tests/usr-dr134-config.test.mjs && node tests/hardware-fat-cli.test.mjs && node tests/simulation-cli.test.mjs && node tests/influx-retention.test.mjs && node tests/configuration-contract.test.mjs && node tests/factory-contract.test.mjs && node tests/documentation.test.mjs",
     "docs:check": "node tests/documentation.test.mjs",
     "audit:flow": "node tests/audit-flow.mjs",
     "audit:secrets": "node scripts/secret-scan.mjs",

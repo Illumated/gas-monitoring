@@ -35,9 +35,9 @@ if (!/^[a-zA-Z0-9.-]+$/.test(host)) {
 
 const port = integer("MODBUS_PORT", 502, 1, 65535);
 const unitId = integer("MODBUS_UNIT_ID", 65, 1, 247);
-const pollMs = integer("MODBUS_POLL_INTERVAL_MS", 2000, 500, 3600000);
-const commandDelayMs = integer("MODBUS_COMMAND_DELAY_MS", 300, 1, 10000);
-const staleMs = integer("GAS_STALE_TIMEOUT_MS", 6000, 1500, 3600000);
+const pollMs = integer("MODBUS_POLL_INTERVAL_MS", 1000, 500, 3600000);
+const commandDelayMs = integer("MODBUS_COMMAND_DELAY_MS", 100, 1, 10000);
+const staleMs = integer("GAS_STALE_TIMEOUT_MS", 3000, 1500, 3600000);
 
 const sequenceCount = 6;
 if (commandDelayMs * sequenceCount >= pollMs) {
