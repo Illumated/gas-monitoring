@@ -65,6 +65,11 @@ assert.deepEqual(normalize.wires[2], [currentDebug.id]);
 assert.match(byId.get("ui-engineering").format, /Токовые входы WB-MAI6/);
 assert.match(byId.get("ui-engineering").format, /Подготовить WB-MAI6/);
 assert.match(byId.get("ui-engineering").format, /Подготовить WB-MR3LV\/I/);
+assert.doesNotMatch(
+    byId.get("ui-engineering").format.slice(0, byId.get("ui-engineering").format.indexOf("</template>")),
+    /<style>/,
+    "engineering component styles must stay outside the Vue template"
+);
 assert.equal(byId.get("fn-engineering-manager").outputs, 4);
 assert.match(byId.get("fn-engineering-manager").func, /engineering-prepare-hardware/);
 assert.equal(byId.get("exec-hardware-commission").command, "node /usr/src/node-red/tools/service-commission.mjs");
