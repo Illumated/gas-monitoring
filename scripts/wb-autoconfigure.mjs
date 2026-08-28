@@ -32,6 +32,18 @@ const decodeString = (registers) => registers
     .trim();
 const client = new ModbusRTU();
 client.setTimeout(timeoutMs);
+const MODBUS_REQUEST_DELAY_MS = 300;
+const delay = (milliseconds) => new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
+let previousRequestFinishedAt = 0;
+const request = async (operation) => {
+    const remainingDelay = MODBUS_REQUEST_DELAY_MS - (Date.now() - previousRequestFinishedAt);
+    if (previousRequestFinishedAt && remainingDelay > 0) await delay(remainingDelay);
+    try {
+        return await operation();
+    } finally {
+        previousRequestFinishedAt = Date.now();
+    }
+};
 const found = [];
 const evidence = { createdUtc: new Date().toISOString(), target: { host, port }, scan: { firstUnit, lastUnit, timeoutMs }, found };
 
@@ -40,7 +52,7 @@ const scan = async () => {
     for (let unitId = firstUnit; unitId <= lastUnit; unitId += 1) {
         client.setID(unitId);
         try {
-            const response = await client.readInputRegisters(200, 20);
+            const response = await request(() => client.readInputRegisters(200, 20));
             const model = decodeString(response.data);
             if (model) found.push({ unitId, model });
         } catch {}
@@ -53,14 +65,14 @@ const configureMai6 = async (unitId) => {
     for (const input of ["IN1P", "IN2P", "IN3P", "IN4P", "IN5P", "IN6P"]) {
         const registers = registersForInput(input);
         const dryContact = input === "IN6P";
-        await client.writeRegister(registers.type, dryContact ? 5632 : 4866);
+        await request(() => client.writeRegister(registers.type, dryContact ? 5632 : 4866));
         if (!dryContact) {
-            await client.writeRegister(registers.scaleLow, 0);
-            await client.writeRegister(registers.scaleHigh, 100);
+            await request(() => client.writeRegister(registers.scaleLow, 0));
+            await request(() => client.writeRegister(registers.scaleHigh, 100));
         }
-        const type = (await client.readHoldingRegisters(registers.type, 1)).data[0];
-        const low = dryContact ? null : (await client.readHoldingRegisters(registers.scaleLow, 1)).data[0];
-        const high = dryContact ? null : (await client.readHoldingRegisters(registers.scaleHigh, 1)).data[0];
+        const type = (await request(() => client.readHoldingRegisters(registers.type, 1))).data[0];
+        const low = dryContact ? null : (await request(() => client.readHoldingRegisters(registers.scaleLow, 1))).data[0];
+        const high = dryContact ? null : (await request(() => client.readHoldingRegisters(registers.scaleHigh, 1))).data[0];
         if (type !== (dryContact ? 5632 : 4866) || (!dryContact && (low !== 0 || high !== 100))) {
             throw new Error(`WB-MAI6 readback failed for ${input}`);
         }
@@ -82,8 +94,8 @@ const updateEnv = async (mai6UnitId, relayUnitId) => {
 
 try {
     await scan();
-    const mai6 = found.filter((device) => /WB-MAI6/i.test(device.model));
-    const relays = found.filter((device) => /WB-MR3LV/i.test(device.model));
+    const mai6 = found.filter((device) => /WB-?MAI6/i.test(device.model));
+    const relays = found.filter((device) => /WB-?MR3LV/i.test(device.model));
     if (mai6.length !== 1) throw new Error(`expected exactly one WB-MAI6, found ${mai6.length}`);
     if (relays.length > 1) throw new Error(`expected at most one WB-MR3LV/I, found ${relays.length}`);
     if (relays[0]?.unitId === mai6[0].unitId) throw new Error("WB-MAI6 and WB-MR3LV/I must have different Unit IDs");

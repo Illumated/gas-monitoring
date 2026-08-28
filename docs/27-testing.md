@@ -61,7 +61,7 @@ docker compose --profile fat --env-file .env -f docker/compose.yaml -f docker/co
 
 ## Software FAT
 
-FAT-профиль использует WB‑MAI6 Unit ID `65`, газовые Input Registers `5380`, `9476`, `13572`, `17668`, `21764`, обратную связь `25860` и WB‑MR3LV/I Unit ID `66`, Coil `0`.
+FAT-профиль использует WB‑MAI6 Unit ID `65`, пары базовых токовых Input Registers `5376–5377`, `9472–9473`, `13568–13569`, `17664–17665`, `21760–21761`, обратную связь `25860` и WB‑MR3LV/I Unit ID `66`, Coil `0`.
 Simulator также реализует конфигурационные holding-регистры всех 12 входов, поэтому на нём можно безопасно проверить `wb-mai6-commission.mjs` до работы с реальным модулем.
 
 | Сценарий | Raw | Ожидание |

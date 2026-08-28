@@ -87,21 +87,39 @@ const stamp = new Date().toISOString().replaceAll(/[-:.]/g, "").replace("Z", "Z"
 const evidencePath = resolve(evidenceDirectory, `wb-mai6-${host}-${unit}-${stamp}.json`);
 const client = new ModbusRTU();
 client.setTimeout(3000);
+const MODBUS_REQUEST_DELAY_MS = 300;
+const delay = (milliseconds) => new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
+let previousRequestFinishedAt = 0;
+const request = async (operation) => {
+    const remainingDelay = MODBUS_REQUEST_DELAY_MS - (Date.now() - previousRequestFinishedAt);
+    if (previousRequestFinishedAt && remainingDelay > 0) await delay(remainingDelay);
+    try {
+        return await operation();
+    } finally {
+        previousRequestFinishedAt = Date.now();
+    }
+};
 
 const signed16 = (value) => value >= 0x8000 ? value - 0x10000 : value;
 const readOne = async (register, table) => {
     const response = table === "holding"
-        ? await client.readHoldingRegisters(register, 1)
-        : await client.readInputRegisters(register, 1);
+        ? await request(() => client.readHoldingRegisters(register, 1))
+        : await request(() => client.readInputRegisters(register, 1));
     return signed16(response.data[0]);
 };
-const snapshot = async () => Promise.all(registerMap.map(async (registers) => ({
-    ...registers,
-    configuredType: await readOne(registers.type, "holding"),
-    configuredLow: await readOne(registers.scaleLow, "holding"),
-    configuredHigh: await readOne(registers.scaleHigh, "holding"),
-    currentValue: await readOne(registers.value, "input")
-})));
+const snapshot = async () => {
+    const result = [];
+    for (const registers of registerMap) {
+        result.push({
+            ...registers,
+            configuredType: await readOne(registers.type, "holding"),
+            configuredLow: await readOne(registers.scaleLow, "holding"),
+            configuredHigh: await readOne(registers.scaleHigh, "holding"),
+            currentValue: await readOne(registers.value, "input")
+        });
+    }
+    return result;
+};
 
 const evidence = {
     createdUtc: new Date().toISOString(),
@@ -118,10 +136,10 @@ try {
     if (apply) {
         for (const registers of registerMap) {
             const dryContact = profile === "gas-monitoring" && registers.input === "IN6P";
-            await client.writeRegister(registers.type, dryContact ? 5632 : sensorType);
+            await request(() => client.writeRegister(registers.type, dryContact ? 5632 : sensorType));
             if (!dryContact) {
-                await client.writeRegister(registers.scaleLow, scaleLow & 0xffff);
-                await client.writeRegister(registers.scaleHigh, scaleHigh & 0xffff);
+                await request(() => client.writeRegister(registers.scaleLow, scaleLow & 0xffff));
+                await request(() => client.writeRegister(registers.scaleHigh, scaleHigh & 0xffff));
             }
         }
         evidence.after = await snapshot();

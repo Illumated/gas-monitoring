@@ -39,7 +39,7 @@ try {
 
     const pollCycle = nodes.find((node) => node.id === "poll-cycle");
     const pollDelay = nodes.find((node) => node.id === "poll-delay");
-    assert.equal(pollCycle.repeat, "2");
+    assert.equal(pollCycle.repeat, "0.5");
     assert.equal(pollDelay.nbRateUnits, "0.3");
     assert.equal(pollDelay.rateUnits, "second");
 

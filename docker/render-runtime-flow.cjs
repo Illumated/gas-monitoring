@@ -63,7 +63,8 @@ const pollGetter = flow.find((node) => node.id === "poll-getter");
 if (!pollCycle || !pollBuilder || !pollDelay || !pollGetter) {
     throw new Error("dynamic polling nodes are missing");
 }
-pollCycle.repeat = String(pollMs / 1000);
+// Частый служебный tick позволяет применять период цикла из persistent settings без перезапуска Node-RED.
+pollCycle.repeat = "0.5";
 pollDelay.nbRateUnits = String(commandDelayMs / 1000);
 pollDelay.rateUnits = "second";
 

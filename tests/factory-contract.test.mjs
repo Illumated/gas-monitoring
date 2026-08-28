@@ -24,7 +24,8 @@ const [
     isolinuxBoot,
     diskSelector,
     acceptance,
-    hardwareAutoconfigure
+    hardwareAutoconfigure,
+    wbAutoconfigure
 ] = await Promise.all([
     read("../factory/versions.env"),
     read("../factory/preseed.cfg"),
@@ -47,7 +48,8 @@ const [
     read("../factory/boot/isolinux.cfg"),
     read("../factory/select-install-disk.sh"),
     read("../deploy/debian/acceptance.sh"),
-    read("../deploy/debian/hardware-autoconfigure.sh")
+    read("../deploy/debian/hardware-autoconfigure.sh"),
+    read("../scripts/wb-autoconfigure.mjs")
 ]);
 
 for (const expected of [
@@ -190,6 +192,9 @@ assert.match(hardwareAutoconfigure, /read_env_value MODBUS_HOST/);
 assert.match(hardwareAutoconfigure, /read_env_value MODBUS_PORT/);
 assert.match(hardwareAutoconfigure, /--entrypoint node/);
 assert.doesNotMatch(hardwareAutoconfigure, /gas-monitoring-node-red:0\.1\.0 \\\n\s+node \/usr\/src\/node-red\/tools/);
+assert.match(wbAutoconfigure, /MODBUS_REQUEST_DELAY_MS = 300/);
+assert.match(wbAutoconfigure, /WB-\?MAI6/);
+assert.match(wbAutoconfigure, /WB-\?MR3LV/);
 assert.match(image, /tools\/hardware-fat\.mjs/);
 assert.match(installer, /gas-monitoring-acceptance\.service/);
 assert.match(windowsBuilder, /Get-FileHash -Algorithm SHA256/);

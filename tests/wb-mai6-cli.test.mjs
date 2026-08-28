@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const script = fileURLToPath(new URL("../scripts/wb-mai6-commission.mjs", import.meta.url));
+const source = await readFile(script, "utf8");
 const run = (...args) => spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
+
+assert.match(source, /MODBUS_REQUEST_DELAY_MS = 300/);
+assert.doesNotMatch(source, /Promise\.all\(registerMap/);
 
 const list = run("--list");
 assert.equal(list.status, 0, list.stderr);

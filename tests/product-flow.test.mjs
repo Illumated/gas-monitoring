@@ -31,12 +31,12 @@ assert.equal(client.serialParity, "none");
 assert.equal(client.commandDelay, "${MODBUS_COMMAND_DELAY_MS}");
 
 const expectedRegisters = new Map([
-    ["oxygen", 5380],
-    ["air", 9476],
-    ["vacuum", 13572],
-    ["n2o", 17668],
-    ["co2", 21764],
-    ["valvefeedback", 25860]
+    ["oxygen", [5376, 2]],
+    ["air", [9472, 2]],
+    ["vacuum", [13568, 2]],
+    ["n2o", [17664, 2]],
+    ["co2", [21760, 2]],
+    ["valvefeedback", [25860, 1]]
 ]);
 assert.equal(nodes.filter((node) => node.type === "modbus-read").length, 0);
 const pollCycle = byId.get("poll-cycle");
@@ -44,18 +44,28 @@ const pollBuilder = byId.get("poll-builder");
 const pollDelay = byId.get("poll-delay");
 const pollGetter = byId.get("poll-getter");
 assert.equal(pollCycle.type, "inject");
-assert.equal(pollCycle.repeat, "2");
+assert.equal(pollCycle.repeat, "0.5");
 assert.equal(pollBuilder.type, "function");
 assert.equal(pollDelay.type, "delay");
 assert.equal(pollDelay.nbRateUnits, "0.3");
 assert.equal(pollGetter.type, "modbus-flex-getter");
 assert.equal(pollGetter.server, client.id);
-for (const [name, address] of expectedRegisters) {
-    assert.match(pollBuilder.func, new RegExp(`\\["${name}",${address}\\]`));
+for (const [name, [address, quantity]] of expectedRegisters) {
+    assert.match(pollBuilder.func, new RegExp(`\\["${name}",${address},${quantity}\\]`));
 }
 assert.match(pollBuilder.func, /settings\.valves\?\.wbMai6UnitId/);
 
 const normalize = byId.get("fn-normalize");
+const currentDebug = byId.get("debug-wb-mai6-current");
+assert.equal(normalize.outputs, 3);
+assert.equal(currentDebug.type, "debug");
+assert.equal(currentDebug.active, true);
+assert.equal(currentDebug.tosidebar, true);
+assert.deepEqual(normalize.wires[2], [currentDebug.id]);
+assert.match(byId.get("ui-engineering").format, /Токовые входы WB-MAI6/);
+assert.match(byId.get("ui-engineering").format, /IN1P/);
+assert.match(byId.get("ui-engineering").format, /Период полного цикла опроса, мс/);
+assert.match(byId.get("ui-engineering").format, /Рекомендуется 2000–5000 мс/);
 const normalizeFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", normalize.func);
 const nodeMock = { send() {}, error() {} };
 const normalizeStore = {};
@@ -93,18 +103,24 @@ const envMock = {
 };
 const timerMock = () => ({ testTimer: true });
 
+const wordsForCurrent = (milliamps) => {
+    const value = Math.round(milliamps * 1_000_000) >>> 0;
+    return [value >>> 16, value & 0xffff];
+};
 for (const gas of ["oxygen", "air", "vacuum", "n2o", "co2"]) {
-    for (const [raw, value, status] of [
-        [0, 0, "alarm"],
-        [35, 3.5, "warn"],
-        [40, 4, "ok"],
-        [60, 6, "ok"],
-        [65, 6.5, "warn"],
-        [66, 6.6, "alarm"]
+    for (const [milliamps, value, status] of [
+        [3.5, 0, "alarm"],
+        [3.94, 0, "alarm"],
+        [4, 0, "alarm"],
+        [9.6, 3.5, "warn"],
+        [10.4, 4, "ok"],
+        [13.6, 6, "ok"],
+        [14.4, 6.5, "warn"],
+        [14.56, 6.6, "alarm"]
     ]) {
         delete normalizeStore.classificationStatus;
         const result = normalizeFn(
-            { topic: gas, payload: { data: [raw] } },
+            { topic: gas, payload: { data: wordsForCurrent(milliamps) } },
             nodeMock,
             contextMock,
             envMock,
@@ -112,15 +128,17 @@ for (const gas of ["oxygen", "air", "vacuum", "n2o", "co2"]) {
             () => {}
         );
         assert.equal(result[0].payload.value, value);
-        assert.equal(result[0].payload.status, status, `${gas} raw=${raw}`);
+        assert.equal(result[0].payload.status, status, `${gas} current=${milliamps}`);
         assert.equal(result[1].payload.value, value);
+        assert.equal(result[2].payload.currentMa, milliamps);
+        assert.equal(result[2].payload.pressureBar, value);
     }
 }
 
-for (const raw of [32767, -32768, Number.NaN]) {
+for (const data of [wordsForCurrent(3.49), [0x7fff, 0xffff], [0x8000, 0], [Number.NaN, 0]]) {
     delete normalizeStore.classificationStatus;
     const result = normalizeFn(
-        { topic: "air", payload: { data: [raw] } },
+        { topic: "air", payload: { data } },
         nodeMock,
         contextMock,
         envMock,
@@ -144,7 +162,7 @@ assert.deepEqual(emptyFailureResult, [null, null], "one empty Modbus response mu
 
 normalizeStore.classificationStatus = { oxygen: "alarm" };
 let hysteresisResult = normalizeFn(
-    { topic: "oxygen", payload: { data: [35] } },
+    { topic: "oxygen", payload: { data: wordsForCurrent(9.6) } },
     nodeMock,
     contextMock,
     envMock,
@@ -153,7 +171,7 @@ let hysteresisResult = normalizeFn(
 );
 assert.equal(hysteresisResult[0].payload.status, "alarm", "alarm must not clear at the warning boundary");
 hysteresisResult = normalizeFn(
-    { topic: "oxygen", payload: { data: [37] } },
+    { topic: "oxygen", payload: { data: wordsForCurrent(9.92) } },
     nodeMock,
     contextMock,
     envMock,
@@ -162,7 +180,7 @@ hysteresisResult = normalizeFn(
 );
 assert.equal(hysteresisResult[0].payload.status, "warn", "alarm must clear inside the warning band");
 hysteresisResult = normalizeFn(
-    { topic: "oxygen", payload: { data: [40] } },
+    { topic: "oxygen", payload: { data: wordsForCurrent(10.4) } },
     nodeMock,
     contextMock,
     envMock,
@@ -171,7 +189,7 @@ hysteresisResult = normalizeFn(
 );
 assert.equal(hysteresisResult[0].payload.status, "warn", "warning must not clear at the normal boundary");
 hysteresisResult = normalizeFn(
-    { topic: "oxygen", payload: { data: [42] } },
+    { topic: "oxygen", payload: { data: wordsForCurrent(10.72) } },
     nodeMock,
     contextMock,
     envMock,
@@ -242,7 +260,7 @@ flowStore.runtimeSettings = {};
 
 delete normalizeStore.classificationStatus;
 const sequencerResult = normalizeFn(
-    { topic: "poll-sequencer", modbusRequest: { name: "air" }, payload: [52] },
+    { topic: "poll-sequencer", modbusRequest: { name: "air" }, payload: wordsForCurrent(12.32) },
     nodeMock,
     contextMock,
     envMock,
@@ -255,7 +273,7 @@ assert.equal(sequencerResult[0].payload.value, 5.2);
 let scheduledTimers = 0;
 for (let index = 0; index < 10; index += 1) {
     normalizeFn(
-        { topic: "oxygen", payload: { data: [50] } },
+        { topic: "oxygen", payload: { data: wordsForCurrent(12) } },
         nodeMock,
         contextMock,
         envMock,
@@ -391,6 +409,7 @@ assert.deepEqual(
     ["oxygen", "air", "vacuum", "n2o", "co2"],
     "all five gas channels must be available as default valve triggers"
 );
+assert.equal(defaultSettingsResult[0].payload.settings.pollIntervalMs, 2000);
 const emptyRegistryResult = engineeringFn(
     { _client: { socketId: "client-1" }, payload: { action: "engineering-unlock", code: "operator-test-code" } },
     nodeMock, engineeringContext, engineeringEnv
@@ -431,6 +450,7 @@ const candidateSettings = {
     channelCount: 5,
     displayMax: 10,
     hysteresis: 0.1,
+    pollIntervalMs: 2500,
     valves: { enabled: false, controlMode: "monitor", triggerGases: [], triggerOnNoData: false, activationDelaySeconds: 0, recoveryDelaySeconds: 5, feedbackTimeoutSeconds: 5 }
 };
 const saveResult = engineeringFn(
@@ -444,6 +464,7 @@ assert.equal(saveResult[0].payload.identity.locationName, "Реанимация,
 assert.equal(flowStore.runtimeSettings.siteName, "Городская больница");
 assert.equal(flowStore.runtimeSettings.locationName, "Реанимация, 2 этаж");
 assert.equal(flowStore.runtimeSettings.gases[0].okLow, 4.1);
+assert.equal(flowStore.runtimeSettings.pollIntervalMs, 2500);
 assert.equal(flowStore.runtimeSettings.operator, "Гимранов", "operator must come from the authenticated code session");
 assert.equal(saveResult[0].payload.saved, true);
 assert.equal(saveResult[1].payload.kind, "settings-change");
@@ -456,6 +477,15 @@ const afterRestartLoad = recreatedEngineeringFn(
 assert.equal(afterRestartLoad[0].payload.settings.gases[0].okLow, 4.1, "runtime settings must be loaded from persistent flow context after function recreation");
 assert.equal(afterRestartLoad[0].payload.settings.gases.length, 5, "older settings must be migrated to the five-channel schema");
 assert.equal(afterRestartLoad[0].payload.settings.channelCount, 5);
+assert.equal(afterRestartLoad[0].payload.settings.pollIntervalMs, 2500);
+const invalidPollInterval = structuredClone(candidateSettings);
+invalidPollInterval.pollIntervalMs = 1500;
+const invalidPollResult = engineeringFn(
+    { _client: { socketId: "client-1" }, payload: { action: "engineering-save", settings: invalidPollInterval } },
+    nodeMock, engineeringContext, engineeringEnv
+);
+assert.equal(invalidPollResult[0].payload.success, false);
+assert.equal(flowStore.runtimeSettings.pollIntervalMs, 2500, "invalid poll interval must not partially persist");
 const rejectedSettings = structuredClone(candidateSettings);
 rejectedSettings.gases[0].warnHigh = 10;
 const rejectedResult = engineeringFn(

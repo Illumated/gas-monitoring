@@ -3,14 +3,13 @@
 const http = require("node:http");
 const ModbusRTU = require("@openp4nr/modbus-serial");
 
-const registers = new Map([
-    [5380, 50],
-    [9476, 52],
-    [13572, 48],
-    [17668, 50],
-    [21764, 50],
-    [25860, 1]
-]);
+const registers = new Map([[25860, 1]]);
+const gasRegisters = [5376, 9472, 13568, 17664, 21760];
+function setCurrent(address, milliamps) {
+    const nanoamps = Math.round(milliamps * 1_000_000) >>> 0;
+    registers.set(address, nanoamps >>> 16);
+    registers.set(address + 1, nanoamps & 0xffff);
+}
 const relayCoils = new Map([[0, false], [1, false], [2, false]]);
 function setInputString(address, count, value) {
     const bytes = Buffer.alloc(count * 2);
@@ -45,30 +44,31 @@ for (let channel = 1; channel <= 6; channel += 1) {
     }
 }
 
+const scenario = (pressures, valveFeedback = 1) => ({ pressures, valveFeedback });
 const scenarios = {
-    normal: { 5380: 50, 9476: 52, 13572: 48, 17668: 50, 21764: 50, 25860: 1 },
-    zero: { 5380: 0, 9476: 0, 13572: 0, 17668: 0, 21764: 0, 25860: 1 },
-    warning: { 5380: 38, 9476: 62, 13572: 39, 17668: 62, 21764: 39, 25860: 1 },
-    oxygenalarm: { 5380: 20, 9476: 52, 13572: 48, 17668: 50, 21764: 50, 25860: 0 },
-    alarm: { 5380: 20, 9476: 80, 13572: 70, 17668: 20, 21764: 80, 25860: 0 },
-    valvealarm: { 5380: 50, 9476: 52, 13572: 48, 17668: 50, 21764: 50, 25860: 0 },
-    calibration4: { 5380: 0, 9476: 0, 13572: 0, 17668: 0, 21764: 0 },
-    calibration12: { 5380: 50, 9476: 50, 13572: 50, 17668: 50, 21764: 50 },
-    calibration20: { 5380: 100, 9476: 100, 13572: 100, 17668: 100, 21764: 100 },
-    nodata: { 5380: 32767, 9476: 32767, 13572: 32767, 17668: 32767, 21764: 32767, 25860: 32767 }
+    normal: scenario([5, 5.2, 4.8, 5, 5]),
+    zero: scenario([0, 0, 0, 0, 0]),
+    warning: scenario([3.8, 6.2, 3.9, 6.2, 3.9]),
+    oxygenalarm: scenario([2, 5.2, 4.8, 5, 5], 0),
+    alarm: scenario([2, 8, 7, 2, 8], 0),
+    valvealarm: scenario([5, 5.2, 4.8, 5, 5], 0),
+    calibration4: { currents: [4, 4, 4, 4, 4], valveFeedback: 1 },
+    calibration12: { currents: [12, 12, 12, 12, 12], valveFeedback: 1 },
+    calibration20: { currents: [20, 20, 20, 20, 20], valveFeedback: 1 },
+    nodata: { currents: [0, 0, 0, 0, 0], valveFeedback: 32767 }
 };
 let currentScenario = "normal";
 
 function apply(values) {
-    for (const [address, value] of Object.entries(values)) {
-        const parsedAddress = Number(address);
-        const parsedValue = Number(value);
-        if (!registers.has(parsedAddress) || !Number.isInteger(parsedValue) || parsedValue < -32768 || parsedValue > 32767) {
-            throw new Error(`invalid register value ${address}=${value}`);
-        }
-        registers.set(parsedAddress, parsedValue);
+    const currents = values.currents || values.pressures.map((pressure) => 4 + pressure * 1.6);
+    if (!Array.isArray(currents) || currents.length !== gasRegisters.length || currents.some((value) => !Number.isFinite(value))) {
+        throw new Error("invalid gas current scenario");
     }
+    gasRegisters.forEach((address, index) => setCurrent(address, currents[index]));
+    registers.set(25860, values.valveFeedback);
 }
+
+apply(scenarios.normal);
 
 const vector = {
     getInputRegister(address, unitID) {
