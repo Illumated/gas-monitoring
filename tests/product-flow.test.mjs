@@ -47,7 +47,7 @@ assert.equal(pollCycle.type, "inject");
 assert.equal(pollCycle.repeat, "0.5");
 assert.equal(pollBuilder.type, "function");
 assert.equal(pollDelay.type, "delay");
-assert.equal(pollDelay.nbRateUnits, "0.3");
+assert.equal(pollDelay.nbRateUnits, "0.1");
 assert.equal(pollGetter.type, "modbus-flex-getter");
 assert.equal(pollGetter.server, client.id);
 for (const [name, [address, quantity]] of expectedRegisters) {
@@ -61,7 +61,13 @@ assert.equal(normalize.outputs, 3);
 assert.equal(currentDebug.type, "debug");
 assert.equal(currentDebug.active, true);
 assert.equal(currentDebug.tosidebar, true);
+assert.deepEqual(normalize.wires[0], ["fn-cycle-aggregate"]);
+assert.deepEqual(normalize.wires[1], []);
 assert.deepEqual(normalize.wires[2], [currentDebug.id]);
+const cycleAggregate = byId.get("fn-cycle-aggregate");
+assert.equal(cycleAggregate.outputs, 2);
+assert.deepEqual(cycleAggregate.wires[0], ["fn-state"]);
+assert.deepEqual(cycleAggregate.wires[1], ["fn-influx-write"]);
 assert.match(byId.get("ui-engineering").format, /Токовые входы WB-MAI6/);
 assert.match(byId.get("ui-engineering").format, /Подготовить WB-MAI6/);
 assert.match(byId.get("ui-engineering").format, /Подготовить WB-MR3LV\/I/);
@@ -72,11 +78,16 @@ assert.doesNotMatch(
 );
 assert.equal(byId.get("fn-engineering-manager").outputs, 4);
 assert.match(byId.get("fn-engineering-manager").func, /engineering-prepare-hardware/);
+assert.match(byId.get("fn-engineering-manager").func, /health\.currents=Object\.fromEntries\(Object\.values\(health\.gases\)/);
 assert.equal(byId.get("exec-hardware-commission").command, "node /usr/src/node-red/tools/service-commission.mjs");
 assert.match(byId.get("poll-builder").func, /hardwareCommissioning/);
 assert.match(byId.get("ui-engineering").format, /IN1P/);
 assert.match(byId.get("ui-engineering").format, /Период полного цикла опроса, мс/);
 assert.match(byId.get("ui-engineering").format, /Рекомендуется 1000–3000 мс/);
+assert.match(byId.get("ui-engineering").format, /Рекомендуется 1000–3000 мс\. Значения вне 1000–10000 мс не сохраняются\./);
+assert.doesNotMatch(byId.get("ui-engineering").format, /Фактический ток петли|115200 bit\/s|Ниже 1000 мс/);
+assert.doesNotMatch(byId.get("ui-engineering").format, /Date\.now\(\)-Number\(item\?\.updatedAt\)/, "engineering freshness must use the server clock");
+assert.match(byId.get("ui-engineering").format, /item\?\.fresh===true/);
 const normalizeFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", normalize.func);
 const nodeMock = { send() {}, error() {} };
 const normalizeStore = {};
@@ -103,6 +114,22 @@ const pollBuilderFn = new Function("msg", "node", "context", "env", "setTimeout"
 const dynamicRequests = pollBuilderFn({}, nodeMock, contextMock, { get() { return ""; } });
 assert.deepEqual(dynamicRequests[0].map((msg) => msg.topic), ["oxygen", "vacuum", "co2", "valvefeedback"]);
 assert.ok(dynamicRequests[0].every((msg) => msg.payload.unitid === 77));
+assert.deepEqual(dynamicRequests[0].map((msg) => msg.modbusRequest.name), ["oxygen", "vacuum", "co2", "valvefeedback"]);
+const cycleAggregateFn = new Function("msg", "node", "context", "env", "setTimeout", "clearTimeout", cycleAggregate.func);
+const cycleStore = {};
+const cycleContext = {
+    get(key) { return cycleStore[key]; },
+    set(key, value) { cycleStore[key] = value; }
+};
+const cycleMessages = ["oxygen", "vacuum", "co2"].map((key) => ({
+    payload: { key, input: key, currentMa: 4, value: 0, status: "alarm", updatedAt: 123456 }
+}));
+assert.equal(cycleAggregateFn(cycleMessages[0], nodeMock, cycleContext, { get() { return ""; } }), null);
+assert.equal(cycleAggregateFn(cycleMessages[1], nodeMock, cycleContext, { get() { return ""; } }), null);
+const completeCycle = cycleAggregateFn(cycleMessages[2], nodeMock, cycleContext, { get() { return ""; } });
+assert.equal(completeCycle[0].payload.length, 3, "a polling cycle must be published as one complete snapshot");
+assert.equal(new Set(completeCycle[0].payload.map((sample) => sample.updatedAt)).size, 1);
+assert.equal(completeCycle[1].length, 3, "InfluxDB must receive every sample from the same complete cycle");
 delete flowStore.runtimeSettings;
 const envMock = {
     get(name) {
@@ -169,7 +196,8 @@ const emptyFailureResult = normalizeFn(
     timerMock,
     () => {}
 );
-assert.deepEqual(emptyFailureResult, [null, null], "one empty Modbus response must wait for centralized stale timeout");
+assert.equal(emptyFailureResult[0].payload.status, "nodata", "an empty response must mark this cycle as no data");
+assert.equal(emptyFailureResult[0].payload.reason, "invalid");
 
 normalizeStore.classificationStatus = { oxygen: "alarm" };
 let hysteresisResult = normalizeFn(
