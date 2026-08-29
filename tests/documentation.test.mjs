@@ -30,20 +30,20 @@ for (const file of markdownFiles) {
 assert.deepEqual(failures, [], failures.join("\n"));
 
 for (const document of [
-    "00-read-first.md", "01-stand-deployment.md", "02-factory-installation.md",
-    "03-network.md", "04-wiring.md", "05-usr-dr134-commissioning.md",
-    "06-wb-mai6-commissioning.md", "07-configuration.md", "08-hardware-fat.md",
-    "09-release-verification.md", "10-operations.md", "11-backup-restore.md",
-    "12-troubleshooting.md", "13-engineering-console.md", "14-max-notifications.md"
+    "00-прочитать-сначала.md", "01-развертывание-стенда.md", "02-заводская-установка.md",
+    "03-сеть.md", "04-схема-подключения.md", "05-настройка-usr-dr134.md",
+    "06-настройка-wb-mai6.md", "07-конфигурация.md", "08-аппаратный-fat.md",
+    "09-проверка-релиза.md", "10-эксплуатация.md", "11-резервное-копирование-и-восстановление.md",
+    "12-диагностика.md", "13-сервисная-консоль.md", "14-уведомления-max.md"
 ]) {
     await access(resolve(root, "docs", document));
 }
 
 const readme = await readFile(resolve(root, "README.md"), "utf8");
-assert.match(readme, /docs\/00-read-first\.md/);
-assert.match(readme, /docs\/01-stand-deployment\.md/);
+assert.match(readme, /docs\/00-прочитать-сначала\.md/);
+assert.match(readme, /docs\/01-развертывание-стенда\.md/);
 
-const factoryGuide = await readFile(resolve(root, "docs", "02-factory-installation.md"), "utf8");
+const factoryGuide = await readFile(resolve(root, "docs", "02-заводская-установка.md"), "utf8");
 for (const required of ["USBImager", "Get-FileHash", "RINIR-13.6.0-amd64.iso", "DD Image mode", "UEFI:"]) {
     assert.ok(factoryGuide.includes(required), `Windows USB guide must document ${required}`);
 }

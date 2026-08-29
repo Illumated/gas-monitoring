@@ -7,8 +7,8 @@ const [compose, productionCompose, fatCompose, envExample, configuration, engine
     readFile(new URL("../docker/compose.production.yaml", import.meta.url), "utf8"),
     readFile(new URL("../docker/compose.fat.yaml", import.meta.url), "utf8"),
     readFile(new URL("../.env.example", import.meta.url), "utf8"),
-    readFile(new URL("../docs/07-configuration.md", import.meta.url), "utf8"),
-    readFile(new URL("../docs/13-engineering-console.md", import.meta.url), "utf8"),
+    readFile(new URL("../docs/07-конфигурация.md", import.meta.url), "utf8"),
+    readFile(new URL("../docs/13-сервисная-консоль.md", import.meta.url), "utf8"),
     readFile(new URL("../config/settings.example.js", import.meta.url), "utf8")
 ]);
 

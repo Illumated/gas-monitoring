@@ -12,8 +12,8 @@
 2. `flows/flows.json` — единственный рабочий flow, сгенерированный из указанного скрипта.
 3. `docker/compose.yaml` и overrides `docker/compose.fat.yaml`, `docker/compose.production.yaml` — фактическая топология runtime.
 4. `deploy/debian/` и `factory/` — заводская установка, firstboot, systemd, kiosk, firewall и acceptance.
-5. `docs/00-read-first.md` и `docs/01-stand-deployment.md` — операторская последовательность.
-6. `docs/29-source-register.md` — происхождение исходного flow и аудитов.
+5. `docs/00-прочитать-сначала.md` и `docs/01-развертывание-стенда.md` — операторская последовательность.
+6. `docs/29-реестр-источников.md` — происхождение исходного flow и аудитов.
 
 Материалы в `docs/source/` и `docs/audit/` — исторические evidence, а не актуальные runtime-инструкции. При расхождении актуальный код и проверенный runtime имеют приоритет.
 
@@ -63,7 +63,7 @@
 - Менять только то, что необходимо для задачи. Не перезаписывать и не удалять несвязанные незакоммиченные изменения.
 - Не использовать `git reset --hard`, рекурсивное удаление или `down --volumes` без прямого указания.
 - Версии образов и dependencies оставлять pinned. Любое обновление версии требует release-проверки.
-- Новая runtime-переменная должна появиться в `.env.example`, Compose, Debian generator, `docs/07-configuration.md` и contract-тесте.
+- Новая runtime-переменная должна появиться в `.env.example`, Compose, Debian generator, `docs/07-конфигурация.md` и contract-тесте.
 
 ## Проверки
 
@@ -93,7 +93,7 @@ npm run docs:check
 - `bash -n` для всех изменённых shell-скриптов;
 - `docker compose ... config --quiet` для base/FAT/production Compose;
 - прогон `scripts/release-check.ps1` перед сборкой образа;
-- проверка нового ISO по `docs/09-release-verification.md`.
+- проверка нового ISO по `docs/09-проверка-релиза.md`.
 
 ## Критерии готовности
 

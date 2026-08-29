@@ -38,7 +38,7 @@ const [
     read("../deploy/debian/nftables.conf"),
     read("../deploy/debian/gas-monitoring-kiosk.service"),
     read("../deploy/debian/factory.env.example"),
-    read("../docs/02-factory-installation.md"),
+    read("../docs/02-заводская-установка.md"),
     read("../factory/build-bundle.sh"),
     read("../docker/node-red/Dockerfile"),
     read("../factory/build-windows.ps1"),
